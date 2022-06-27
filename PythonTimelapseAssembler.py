@@ -7,56 +7,13 @@ import statistics
 from datetime import datetime
 import textwrap
 
-root = tk.Tk()
-root.withdraw()
-
-folder_path = filedialog.askdirectory()
-print(folder_path)
-now = datetime.now()
-
-video_name = f"{os.path.basename(folder_path)}_PROC{now.strftime('%Y-%m-%d-%H-%M-%S')}.avi"
-outputfile = os.path.join(folder_path, video_name)
-images = [img for img in os.listdir(folder_path) if img.endswith(".tiff") or img.endswith(".png") or img.endswith(".jpg") or img.endswith(".jpeg") or img.endswith(".bmp")]
-if not images:
-    messagebox.showerror("No images", "No images with extension '.tiff', '.png', '.jpg', '.jpeg' or '.bmp' found in selected folder.")
-    raise Exception("No images with extension '.tiff', '.png', '.jpg', '.jpeg' or '.bmp' found in selected folder.")
-
-referenceFrame = cv2.imread(os.path.join(folder_path, images[0]))
-(referenceHeight, referenceWidth, referenceLayers) = referenceFrame.shape
-
-for idx, image in enumerate(images):
-    frame = cv2.imread(os.path.join(folder_path, image))
-    if frame is None or (referenceHeight, referenceWidth, referenceLayers) != frame.shape:
-        messagebox.showerror("Invalid images", f"Not possible to create timelapse. All images need to be of same shape. Image '{image}' has a different shape than the first image '{images[0]}'.")
-        raise Exception(f"Not possible to create timelapse. All images need to be of same shape. Image '{image}' has a different shape than the first image '{images[0]}'.")
-
-
-input_framerate = simpledialog.askfloat('Recording FPS', 'Input the recording frame rate', minvalue=0)
-output_framerate = simpledialog.askinteger('Output FPS', 'Input the video output frame rate', minvalue=1, maxvalue=120, initialvalue=15)
-
-
-
-# TODO variable fps!
-video = cv2.VideoWriter(outputfile, 0, output_framerate, (referenceWidth, referenceHeight))
-
-
-fontSizeRatio = 6 / 3000
-font = cv2.FONT_HERSHEY_SIMPLEX
-locationTime = (50, 180)
-locationName = (750, 100)
-locationRundatetime = (750, 160)
-locationCurrent = (50, referenceHeight - 20)
-fontScale = referenceHeight * fontSizeRatio
-fontColor = (255, 255, 255)
-thickness = 10
-lineType = 3
-
+# executable created via Terminal in Pycharm: pyinstaller -F PythonTimelapseAssembler.py
 
 def TimeRemaining(arraytimes, left):
     avgtime = statistics.mean(arraytimes)
     timeremaining = left * avgtime
     if timeremaining < 2:
-        rem = f"1 second"
+        rem = f"Almost done now ..."
     elif timeremaining < 90:
         rem = f"{round(timeremaining)} seconds"
     elif timeremaining < 3600:
@@ -92,33 +49,98 @@ def FancyTimeFormat(t, max_t, mode='variable'):
         ValueError(f'{mode} is not a valid option. try variable, auto, sec, min or hrs.')
     return out
 
-originalPath = textwrap.wrap(f"Original path: {folder_path}", width=100)
+
+print('----- Simple Timelapse Assembler -----')
+print('by Harmen Hoek\n')
+print('Currently only fixed fps recordings can be processed.\n')
+
+root = tk.Tk()
+root.withdraw()
+
+folder_path = filedialog.askdirectory()
+now = datetime.now()
+
+video_name = f"{os.path.basename(folder_path)}_PROC{now.strftime('%Y-%m-%d-%H-%M-%S')}.avi"
+outputfile = os.path.join(folder_path, video_name)
+images = [img for img in os.listdir(folder_path) if img.endswith(".tiff") or img.endswith(".png") or img.endswith(".jpg") or img.endswith(".jpeg") or img.endswith(".bmp")]
+if not images:
+    messagebox.showerror("No images", "No images with extension '.tiff', '.png', '.jpg', '.jpeg' or '.bmp' found in selected folder.")
+    raise Exception("No images with extension '.tiff', '.png', '.jpg', '.jpeg' or '.bmp' found in selected folder.")
+
+referenceFrame = cv2.imread(os.path.join(folder_path, images[0]))
+(inputHeight, inputWidth, referenceLayers) = referenceFrame.shape
+
+print('Validating images ...')
+for idx, image in enumerate(images):
+    frame = cv2.imread(os.path.join(folder_path, image))
+    if frame is None or (inputHeight, inputWidth, referenceLayers) != frame.shape:
+        messagebox.showerror("Invalid images", f"Not possible to create timelapse. All images need to be of same shape. Image '{image}' has a different shape than the first image '{images[0]}'.")
+        raise Exception(f"Not possible to create timelapse. All images need to be of same shape. Image '{image}' has a different shape than the first image '{images[0]}'.")
+print('Validation passed successfully.')
+
+
+print('Enter the recording FPS, output FPS and compression rate in the popup dialog.')
+input_framerate = simpledialog.askfloat('Recording FPS', 'Input the recording frame rate', minvalue=0)
+output_framerate = simpledialog.askinteger('Output FPS', 'Input the video output frame rate', minvalue=1, maxvalue=120, initialvalue=15)
+output_compression = simpledialog.askinteger('Output FPS', 'Input the image quality (100=best, 10=worst)', minvalue=10, maxvalue=100, initialvalue=100)
+
+outputHeight = round(inputHeight * (output_compression / 100))
+outputWidth = round(inputWidth * (output_compression / 100))
+
+# TODO variable fps!
+video = cv2.VideoWriter(outputfile, 0, output_framerate, (outputWidth, outputHeight))
+
+
+fontSizeRatio = 6 / 3000
+ySize = round(180 / 4000 * outputWidth)
+xSize = round(50 / 3000 * outputHeight)
+font = cv2.FONT_HERSHEY_SIMPLEX
+fontScale = outputHeight * fontSizeRatio
+fontColor = (255, 255, 255)
+thickness = round(10 / 4000 * outputWidth)
+lineType = 3
+
 nowstr = now.strftime('%d-%m-%Y, %H:%M:%S')
 
 timetracker = []
-for idx, image in enumerate(images):
-    start = time.time()
-    img = cv2.imread(os.path.join(folder_path, image))
+for idx, imagepath in enumerate(images):
+    start = time.time()  # start timer to calculate iteration time
+    img = cv2.imread(os.path.join(folder_path, imagepath))  # load image
+    img = cv2.resize(img, (outputWidth, outputHeight), interpolation=cv2.INTER_AREA)
 
-    cv2.putText(img, f"t={FancyTimeFormat(input_framerate * idx, len(images), mode='auto')}",
-                locationTime, font, fontScale, fontColor, thickness, lineType)
-    for i, line in enumerate(originalPath):
-        offset = i * (fontScale * 10)
-        loc = (locationName[0], round(locationName[1] + offset))
-        cv2.putText(img, line, loc, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
+    # Print strings on the image
+    # cv2.putText(image, string, location, font, fontscale, fontcolor, fontthickness, linetype)
+    StringTime = f"t={FancyTimeFormat(input_framerate * idx, len(images), mode='auto')}"
+    cv2.putText(img, StringTime, (xSize, ySize), font, fontScale, fontColor, thickness, lineType)
 
-    locationRundatetime = (locationRundatetime[0], round(loc[1] + offset))
-    cv2.putText(img, f"Video created: {nowstr}",
-                locationRundatetime, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
-    cv2.putText(img, f"{image}",
-                locationCurrent, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
+    StringPathFolder = textwrap.wrap(f"Original path: {folder_path}", width=100)
+    offset = round(fontScale * 10)
+    for i, line in enumerate(StringPathFolder):
+        # offset = round(i * (fontScale * 10))
+        LocationPathFolder = (15 * xSize, round(ySize / 2) + offset * i)
+        cv2.putText(img, line, LocationPathFolder, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
 
+    StringCreatedOn = f"Video created: {nowstr}"
+    LocationCreatedOn = (15 * xSize, LocationPathFolder[1] + offset)
+    cv2.putText(img, StringCreatedOn, LocationCreatedOn, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
 
-    video.write(img)
-    timetracker.append(time.time() - start)
-    TimeRemaining(timetracker, len(images) - idx)
+    StringPathImage = f"{imagepath}"
+    LocationPathImage = (xSize, outputHeight - 20)
+    cv2.putText(img, StringPathImage, LocationPathImage, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
+
+    StringImageNumber = f"frame {idx + 1}"
+    cv2.putText(img, StringImageNumber, (xSize, ySize * 2), font, fontScale * 0.5, fontColor, round(thickness * 0.5), lineType)
+
+    # Compress image
+
+    video.write(img)  # write frame to file
+    timetracker.append(time.time() - start)  # add elapsed time to timetracker array
+    TimeRemaining(timetracker, len(images) - idx)  # estimate remaining time based on average time per iteration and iterations left
 
 
 
 cv2.destroyAllWindows()
 video.release()
+
+print(f"Video saved as {os.path.join(folder_path, outputfile)}.")
+print("Program finished.")
