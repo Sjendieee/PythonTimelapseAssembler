@@ -9,7 +9,7 @@ There are 2 main workflows:
 
 Default settings for the program are saved with `Set settings as default` to a json file.
 
-<img scr="screenshots\img.png" align="center" width="80%" />
+<img src="screenshots\img.png" align="center" width="80%" />
 
 
 Bugs:
