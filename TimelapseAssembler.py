@@ -6,7 +6,7 @@ from datetime import datetime
 import os
 import cv2
 
-version = '1.0 (19-07-2022)'
+version = '1.1 (20-07-2022)'
 
 # PyInstaller -F .\TimelapseAssembler.py -n TimelapseAssembler-1_0
 
