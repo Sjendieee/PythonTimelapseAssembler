@@ -19,7 +19,7 @@ July 2022 - Physics of Complex Fluids
 
 #  python -m PyInstaller -F main.py -n OCA_TiffToVideo
 
-def CreateOCAVideo(folder_path, output_fps):
+def CreateOCAVideo(folder_path, output_fps, newHeight):
 
     print('----- Image to video converter for Dataphysics OCA 15plus -----')
     print('Special thanks to Harro Beens for figuring out the correct codec.')
@@ -32,7 +32,6 @@ def CreateOCAVideo(folder_path, output_fps):
 
     # print('Give the desired height of the output video.')
     # newHeight = simpledialog.askinteger('Output video height', 'Output video height', minvalue=1, maxvalue=3000, initialvalue=1800)
-    newHeight = 1800
 
     now = datetime.now()
 

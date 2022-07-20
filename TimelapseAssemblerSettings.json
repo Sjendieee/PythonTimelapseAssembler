@@ -2,6 +2,7 @@
   "fps_output": "10",
   "fps_input": "15",
   "compression_rate": "15",
-  "rawvideo": false,
-  "overlay": false
+  "rawvideo": true,
+  "overlay": false,
+  "newHeight": "1800"
 }

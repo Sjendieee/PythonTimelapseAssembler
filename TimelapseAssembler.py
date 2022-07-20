@@ -3,6 +3,8 @@ import json
 from PythonTimelapseAssembler import AssembleTimelapse
 from OCA_TiffToVideo import CreateOCAVideo
 from datetime import datetime
+import os
+import cv2
 
 version = '1.0 (19-07-2022)'
 
@@ -38,6 +40,11 @@ settings_row = [
     [
         sg.Text('Compression rate (100=best, 10=worst)'),
         sg.InputText(size=(10, 1), key='compression_rate')
+    ],
+    [
+        sg.Text('Output video height'),
+        sg.InputText(size=(10, 1), key='newHeight', disabled=True),
+        sg.Button('Calculate max height', enable_events=True)
     ],
     [
         sg.Checkbox('Make safe for import OCA (rawvideo)', key='rawvideo', enable_events=True)
@@ -85,6 +92,7 @@ def SaveAsDefault():
         'compression_rate': window["compression_rate"].get(),
         'rawvideo': window["rawvideo"].get(),
         'overlay': window["overlay"].get(),
+        'newHeight': window["newHeight"].get(),
     }
     with open('TimelapseAssemblerSettings.json', 'w') as f:
         json.dump(data, f, indent=2)
@@ -105,6 +113,7 @@ def SetInitialValues():
             window["compression_rate"].update(settings['compression_rate'])
             window["rawvideo"].update(settings['rawvideo'])
             window["overlay"].update(settings['overlay'])
+            window["newHeight"].update(settings['newHeight'])
             print(f"{datetime.now().strftime('%H:%M:%S')} OK        Default settings loaded from 'TimelapseAssemblerSettings.json'.")
 
     except:
@@ -129,7 +138,7 @@ while True:
         if folder:
             print(f"{datetime.now().strftime('%H:%M:%S')} Creating timelapse now ...")
             if values['rawvideo'] == True:
-                CreateOCAVideo(folder, int(values["fps_output"]))
+                CreateOCAVideo(folder, int(values["fps_output"]), int(values["newHeight"]))
             else:
                 AssembleTimelapse(folder, int(values["fps_input"]), int(values["fps_output"]), int(values["compression_rate"]))
         else:
@@ -138,13 +147,39 @@ while True:
     if event == 'Set settings as default':
         SaveAsDefault()
 
+    if event == 'Calculate max height':
+        folder = values["-FOLDER-"]
+        if not folder:
+            print("Select an image folder first.")
+        else:
+            files = os.listdir(folder)
+            supported_files = [file.endswith((".tiff", ".png", '.jpg', '.jpeg', '.bmp')) for file in files]
+            cnt_supported_files = sum(supported_files)
+            newHeight = int(140/cnt_supported_files*1800)  # based on some test results importing into OCA
+            print(f"Maximum output height is {newHeight} pixels.")
+            first_image = [file for file, y in zip(files, supported_files) if y == True][0]
+            if first_image:
+                first_image_height, w, _ = cv2.imread(os.path.join(folder, first_image)).shape
+                if newHeight > first_image_height:
+                    print(f"Maximum output height exceeds original image height ({first_image_height} pixels). Setting output height to {first_image_height} pixels.")
+                    newHeight = first_image_height
+                if newHeight > 1800:
+                    print("Maximum output height exceeds 1800 pixels, thus troublesome to work with in OCA software. Setting output height to 1800 pixels. ")
+                    newHeight = 1800
+
+                window["newHeight"].update(int(newHeight))
+            else:
+                print(f"{datetime.now().strftime('%H:%M:%S')}ERROR     No images with extension '.tiff', '.png', '.jpg', '.jpeg' or '.bmp' found in selected folder.")
+
     if values['rawvideo'] == True:
         window['overlay'].update(disabled=True)
         window['compression_rate'].update(disabled=True, text_color='grey')
         window['fps_input'].update(disabled=True, text_color='grey')
+        window['newHeight'].update(disabled=False, text_color='black')
 
 
     if values['rawvideo'] == False:
         window['overlay'].update(disabled=False)
         window['compression_rate'].update(disabled=False, text_color='black')
         window['fps_input'].update(disabled=False, text_color='black')
+        window['newHeight'].update(disabled=True, text_color='grey')

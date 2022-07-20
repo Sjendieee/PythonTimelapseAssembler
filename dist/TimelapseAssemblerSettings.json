@@ -2,6 +2,6 @@
   "fps_output": "1",
   "fps_input": "1",
   "compression_rate": "100",
-  "rawvideo": false,
+  "rawvideo": true,
   "overlay": false
 }
