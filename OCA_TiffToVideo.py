@@ -17,26 +17,15 @@ Special thanks to Harro Beens for figuring out the correct format, codec and sca
 July 2022 - Physics of Complex Fluids
 '''
 
-#  python -m PyInstaller -F main.py -n OCA_TiffToVideo
-
 def CreateOCAVideo(folder_path, output_fps, newHeight):
 
     print('----- Image to video converter for Dataphysics OCA 15plus -----')
     print('Special thanks to Harro Beens for figuring out the correct codec.')
     print(f"{datetime.now().strftime('%H:%M:%S')} Creating video (this might take a while)...")
-    # print('Select folder with images ...')
-
-    # root = tk.Tk()
-    # root.withdraw()
-    # folder_path = filedialog.askdirectory()
-
-    # print('Give the desired height of the output video.')
-    # newHeight = simpledialog.askinteger('Output video height', 'Output video height', minvalue=1, maxvalue=3000, initialvalue=1800)
 
     now = datetime.now()
 
     filenameExport = f"{os.path.basename(os.path.normpath(folder_path))}_PROC{now.strftime('%Y-%m-%d-%H-%M-%S')}.avi"
-    # filenameExport = f"{os.path.basename(os.path.normpath(folder_path))}_PROC{now.strftime('%Y-%m-%d-%H-%M-%S')}.mp4"
 
     images = [os.path.join(folder_path, img) for img in os.listdir(folder_path) if
               img.endswith(".tiff") or img.endswith(".png") or img.endswith(".jpg") or img.endswith(
@@ -49,11 +38,10 @@ def CreateOCAVideo(folder_path, output_fps, newHeight):
             f.write(f"file '{image}'\n")
 
     try:
-        out, _ = (
+        _, _ = (
             ffmpeg
                 .input('temp.txt', r=output_fps, f='concat', safe='0')
                 .output(filenameExport, vf=f'scale={newHeight}:-1', vcodec='rawvideo', crf=0)
-                # .output(filenameExport, vf=f'scale={newHeight}:-1', vcodec='libx265')
                 .run(overwrite_output=True)
         )
     except ffmpeg.Error as e:

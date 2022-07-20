@@ -5,11 +5,11 @@ from OCA_TiffToVideo import CreateOCAVideo
 from datetime import datetime
 import os
 import cv2
+import sys
 
-version = '1.1 (20-07-2022)'
-
-# PyInstaller -F .\TimelapseAssembler.py -n TimelapseAssembler-1_0
-
+version = '1.3 (20-07-2022)'
+# In prompt:
+# PyInstaller -F --onefile --noconsole -n TimelapseAssembler-1_3 --icon=timelapse.ico --add-data timelapse.ico;ico .\TimelapseAssembler.py
 
 settings_row = [
     [
@@ -44,13 +44,13 @@ settings_row = [
     [
         sg.Text('Output video height'),
         sg.InputText(size=(10, 1), key='newHeight', disabled=True),
-        sg.Button('Calculate max height', enable_events=True)
+        sg.Button('Calculate max height', enable_events=True, key='calcheight', disabled=False)
     ],
     [
         sg.Checkbox('Make safe for import OCA (rawvideo)', key='rawvideo', enable_events=True)
     ],
     [
-        sg.Checkbox('Overlay video with information (setting does not work yet)', key='overlay')
+        sg.Checkbox('Overlay video with information', key='overlay')
     ],
 ]
 
@@ -102,7 +102,7 @@ def SaveAsDefault():
 def SetInitialValues():
     print('----- Simple Timelapse Assembler -----')
     print('by Harmen Hoek')
-    print(f"Version: {version}")
+    print(f"Version: {version} (https://github.com/harmenhoek/PythonTimelapseAssembler)")
     print(f"{datetime.now().strftime('%H:%M:%S')} WARNING   Currently only fixed fps recordings can be processed.")
 
     try:
@@ -114,13 +114,26 @@ def SetInitialValues():
             window["rawvideo"].update(settings['rawvideo'])
             window["overlay"].update(settings['overlay'])
             window["newHeight"].update(settings['newHeight'])
+            if settings['rawvideo'] == True:
+                window['overlay'].update(disabled=True)
+                window['compression_rate'].update(disabled=True, text_color='grey')
+                window['fps_input'].update(disabled=True, text_color='grey')
+                window['newHeight'].update(disabled=False, text_color='black')
+                window['calcheight'].update(disabled=False)
+            if settings['rawvideo'] == False:
+                window['overlay'].update(disabled=False)
+                window['compression_rate'].update(disabled=False, text_color='black')
+                window['fps_input'].update(disabled=False, text_color='black')
+                window['newHeight'].update(disabled=True, text_color='grey')
+                window['calcheight'].update(disabled=True)
+
             print(f"{datetime.now().strftime('%H:%M:%S')} OK        Default settings loaded from 'TimelapseAssemblerSettings.json'.")
 
     except:
         print(f"{datetime.now().strftime('%H:%M:%S')} WARNING   No default settings found. Press 'Set settings as default' to create default settings.")
 
 
-window = sg.Window("Simple Timelapse Assembler", layout, finalize=True)
+window = sg.Window("Simple Timelapse Assembler", layout, finalize=True, icon='timelapse.ico')
 SetInitialValues()
 
 while True:
@@ -131,6 +144,10 @@ while True:
     # Folder name was filled in, make a list of files in the folder
     if event == "-FOLDER-":
         folder = values["-FOLDER-"]
+        files = os.listdir(folder)
+        supported_files = [file.endswith((".tiff", ".png", '.jpg', '.jpeg', '.bmp')) for file in files]
+        cnt_supported_files = sum(supported_files)
+        print(f"{datetime.now().strftime('%H:%M:%S')} Folder {folder} selected, with {cnt_supported_files} supported image files ({len(files)-cnt_supported_files} files ignored).")
 
     if event == "Create timelapse":
         folder = values["-FOLDER-"]
@@ -140,14 +157,15 @@ while True:
             if values['rawvideo'] == True:
                 CreateOCAVideo(folder, int(values["fps_output"]), int(values["newHeight"]))
             else:
-                AssembleTimelapse(folder, int(values["fps_input"]), int(values["fps_output"]), int(values["compression_rate"]))
+                overlay = values['overlay']
+                AssembleTimelapse(folder, int(values["fps_input"]), int(values["fps_output"]), int(values["compression_rate"]), overlay=overlay)
         else:
             print(f"{datetime.now().strftime('%H:%M:%S')} ERROR     No folder selected.")
 
     if event == 'Set settings as default':
         SaveAsDefault()
 
-    if event == 'Calculate max height':
+    if event == 'calcheight':
         folder = values["-FOLDER-"]
         if not folder:
             print("Select an image folder first.")
@@ -176,6 +194,7 @@ while True:
         window['compression_rate'].update(disabled=True, text_color='grey')
         window['fps_input'].update(disabled=True, text_color='grey')
         window['newHeight'].update(disabled=False, text_color='black')
+        window['calcheight'].update(disabled=False)
 
 
     if values['rawvideo'] == False:
@@ -183,3 +202,4 @@ while True:
         window['compression_rate'].update(disabled=False, text_color='black')
         window['fps_input'].update(disabled=False, text_color='black')
         window['newHeight'].update(disabled=True, text_color='grey')
+        window['calcheight'].update(disabled=True)

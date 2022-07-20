@@ -48,7 +48,7 @@ def FancyTimeFormat(t, max_t, mode='variable'):
     return out
 
 
-def AssembleTimelapse(folder_path, input_framerate, output_framerate, output_compression):
+def AssembleTimelapse(folder_path, input_framerate, output_framerate, output_compression, overlay=True):
     if int(output_framerate) > 100 or int(output_framerate) < 1:
         raise Exception(f"{datetime.now().strftime('%H:%M:%S')} ERROR     Choose an output frame rate between 1 and 100.")
     if int(output_compression) > 100 or int(output_compression) < 10:
@@ -100,26 +100,27 @@ def AssembleTimelapse(folder_path, input_framerate, output_framerate, output_com
 
         # Print strings on the image
         # cv2.putText(image, string, location, font, fontscale, fontcolor, fontthickness, linetype)
-        StringTime = f"t={FancyTimeFormat(input_framerate * idx, len(images), mode='auto')}"
-        cv2.putText(img, StringTime, (xSize, ySize), font, fontScale, fontColor, thickness, lineType)
+        if overlay:
+            StringTime = f"t={FancyTimeFormat(input_framerate * idx, len(images), mode='auto')}"
+            cv2.putText(img, StringTime, (xSize, ySize), font, fontScale, fontColor, thickness, lineType)
 
-        StringPathFolder = textwrap.wrap(f"Original path: {folder_path}", width=100)
-        offset = round(fontScale * 10)
-        for i, line in enumerate(StringPathFolder):
-            # offset = round(i * (fontScale * 10))
-            LocationPathFolder = (15 * xSize, round(ySize / 2) + offset * i)
-            cv2.putText(img, line, LocationPathFolder, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
+            StringPathFolder = textwrap.wrap(f"Original path: {folder_path}", width=100)
+            offset = round(fontScale * 10)
+            for i, line in enumerate(StringPathFolder):
+                # offset = round(i * (fontScale * 10))
+                LocationPathFolder = (15 * xSize, round(ySize / 2) + offset * i)
+                cv2.putText(img, line, LocationPathFolder, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
 
-        StringCreatedOn = f"Video created: {nowstr}"
-        LocationCreatedOn = (15 * xSize, LocationPathFolder[1] + offset)
-        cv2.putText(img, StringCreatedOn, LocationCreatedOn, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
+            StringCreatedOn = f"Video created: {nowstr}"
+            LocationCreatedOn = (15 * xSize, LocationPathFolder[1] + offset)
+            cv2.putText(img, StringCreatedOn, LocationCreatedOn, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
 
-        StringPathImage = f"{imagepath}"
-        LocationPathImage = (xSize, outputHeight - 20)
-        cv2.putText(img, StringPathImage, LocationPathImage, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
+            StringPathImage = f"{imagepath}"
+            LocationPathImage = (xSize, outputHeight - 20)
+            cv2.putText(img, StringPathImage, LocationPathImage, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
 
-        StringImageNumber = f"frame {idx + 1}"
-        cv2.putText(img, StringImageNumber, (xSize, ySize * 2), font, fontScale * 0.5, fontColor, round(thickness * 0.5), lineType)
+            StringImageNumber = f"frame {idx + 1}"
+            cv2.putText(img, StringImageNumber, (xSize, ySize * 2), font, fontScale * 0.5, fontColor, round(thickness * 0.5), lineType)
 
         # Compress image
 
