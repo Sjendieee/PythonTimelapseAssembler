@@ -10,7 +10,3 @@ There are 2 main workflows:
 Default settings for the program are saved with `Set settings as default` to a json file.
 
 <img src="screenshots\img.png" align="center" width="80%" />
-
-
-Bugs:
-- Icon only on window when .ico is in .exe folder.
