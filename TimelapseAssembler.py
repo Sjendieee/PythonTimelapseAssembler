@@ -7,7 +7,15 @@ import os
 import cv2
 import sys
 
-version = '1.3 (20-07-2022)'
+version = '1.4 (16-08-2022)'
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
+
+icon_path = resource_path("timelapse.ico")
+
 # In prompt:
 # PyInstaller -F --onefile --noconsole -n TimelapseAssembler-1_3 --icon=timelapse.ico --add-data timelapse.ico;ico .\TimelapseAssembler.py
 
@@ -133,7 +141,7 @@ def SetInitialValues():
         print(f"{datetime.now().strftime('%H:%M:%S')} WARNING   No default settings found. Press 'Set settings as default' to create default settings.")
 
 
-window = sg.Window("Simple Timelapse Assembler", layout, finalize=True, icon='timelapse.ico')
+window = sg.Window("Simple Timelapse Assembler", layout, finalize=True, icon=icon_path)
 SetInitialValues()
 
 while True:

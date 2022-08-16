@@ -24,19 +24,25 @@ def TimeRemaining(arraytimes, left):
 
 def FancyTimeFormat(t, max_t, mode='variable'):
     if mode == 'variable':
-        if t < 90:
+        if max_t < 5:
+            out = f"{round(t * 1000)}ms"
+        elif t < 90:
             out = f"{round(t)}s"
         elif t < 3600:
             out = f"{round(t / 60)}min"
         else:
             out = f"{round(t / 3600)}hrs"
     elif mode == 'auto':
-        if max_t < 90:
+        if max_t < 5:
+            out = f"{round(t * 1000)}ms"
+        elif max_t < 90:
             out = f"{round(t)}s"
         elif max_t < 3600:
             out = f"{round(t / 60)}min"
         else:
             out = f"{round(t / 3600)}hrs"
+    elif mode == 'ms':
+        out = f"{round(t * 1000)}ms"
     elif mode == 'sec':
         out = f"{round(t)}s"
     elif mode == 'min':
@@ -101,7 +107,7 @@ def AssembleTimelapse(folder_path, input_framerate, output_framerate, output_com
         # Print strings on the image
         # cv2.putText(image, string, location, font, fontscale, fontcolor, fontthickness, linetype)
         if overlay:
-            StringTime = f"t={FancyTimeFormat(input_framerate * idx, len(images), mode='auto')}"
+            StringTime = f"t={FancyTimeFormat(idx / input_framerate, len(images) / input_framerate, mode='auto')}"
             cv2.putText(img, StringTime, (xSize, ySize), font, fontScale, fontColor, thickness, lineType)
 
             StringPathFolder = textwrap.wrap(f"Original path: {folder_path}", width=100)
