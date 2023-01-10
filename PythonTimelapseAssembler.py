@@ -4,6 +4,7 @@ import cv2
 import statistics
 from datetime import datetime
 import textwrap
+import numpy as np
 
 # executable created via Terminal in Pycharm: pyinstaller -F PythonTimelapseAssembler.py
 
@@ -53,8 +54,45 @@ def FancyTimeFormat(t, max_t, mode='variable'):
         ValueError(f"{datetime.now().strftime('%H:%M:%S')} {mode} is not a valid option. try variable, auto, sec, min or hrs.")
     return out
 
+def timestamps_to_deltat(timestamps):
+    deltat = [0]
+    for idx in range(1, len(timestamps)):
+        deltat.append((timestamps[idx] - timestamps[idx - 1]).total_seconds())
+    return deltat
 
-def AssembleTimelapse(folder_path, input_framerate, output_framerate, output_compression, window, overlay=True):
+def get_timestamps(filenames_fullpath, method, input_fps=False):
+    if method == 'Fixed':
+        # deltatime = np.arange(0, len(filenames_fullpath)) * input_fps
+        deltatime = np.ones(len(filenames_fullpath)) * input_fps
+    elif method == 'Read from creation date (Windows only)':
+        timestamps = []
+        for f in filenames_fullpath:
+            timestamps.append(datetime.fromtimestamp(os.path.getctime(f)))
+        deltatime = timestamps_to_deltat(timestamps)
+    elif method == 'Read from modified date (Windows only)':
+        timestamps = []
+        for f in filenames_fullpath:
+            timestamps.append(datetime.fromtimestamp(os.path.getmtime(f)))
+        deltatime = timestamps_to_deltat(timestamps)
+    elif method == 'Read from filename':
+        deltatime = []
+        # timestamps = []
+        # for f in filenames:
+        #     # match = re.search(r"[0-9]{14}", f)  # we are looking for 14 digit number
+        #     match = re.search(config.get("GENERAL", "FILE_TIMESTAMPFORMAT_RE"), f)  # we are looking for 14 digit number
+        #     if not match:
+        #         logging.error("No 14-digit timestamp found in filename.")
+        #         exit()
+        #     try:
+        #         timestamps.append(datetime.strptime(match.group(0), config.get("GENERAL", "FILE_TIMESTAMPFORMAT")))
+        #     except:
+        #         exit()
+        # deltatime = timestamps_to_deltat(timestamps)
+    return deltatime
+
+
+def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_framerate, output_compression, window, overlay=True, overlayformat='auto'):
+
     if int(output_framerate) > 100 or int(output_framerate) < 1:
         raise Exception(f"{datetime.now().strftime('%H:%M:%S')} ERROR     Choose an output frame rate between 1 and 100.")
     if int(output_compression) > 100 or int(output_compression) < 10:
@@ -68,16 +106,24 @@ def AssembleTimelapse(folder_path, input_framerate, output_framerate, output_com
     images = [img for img in os.listdir(folder_path) if img.endswith(".tiff") or img.endswith(".png") or img.endswith(".jpg") or img.endswith(".jpeg") or img.endswith(".bmp")]
     if not images:
         raise Exception(f"{datetime.now().strftime('%H:%M:%S')} No images with extension '.tiff', '.png', '.jpg', '.jpeg' or '.bmp' found in selected folder.")
+    window.Refresh()
 
     referenceFrame = cv2.imread(os.path.join(folder_path, images[0]))
     (inputHeight, inputWidth, referenceLayers) = referenceFrame.shape
 
-    print(f"{datetime.now().strftime('%H:%M:%S')} Validating images ...")
+    images_fullpath = [os.path.join(folder_path, i) for i in images]
+    deltaTime = get_timestamps(images_fullpath, framerate_method, input_fps=input_framerate)
+    timeFromStart = np.cumsum(deltaTime)
+
+
+    print(f"{datetime.now().strftime('%H:%M:%S')} Validating images ... This might take a while (depending on the amount of imageS)")
+    window.Refresh()
     for idx, image in enumerate(images):
         frame = cv2.imread(os.path.join(folder_path, image))
         if frame is None or (inputHeight, inputWidth, referenceLayers) != frame.shape:
             raise Exception(f"{datetime.now().strftime('%H:%M:%S')} Not possible to create timelapse. All images need to be of same shape. Image '{image}' has a different shape than the first image '{images[0]}'.")
     print(f"{datetime.now().strftime('%H:%M:%S')} Validation passed successfully.")
+    window.Refresh()
 
 
     outputHeight = round(inputHeight * (output_compression / 100))
@@ -107,7 +153,8 @@ def AssembleTimelapse(folder_path, input_framerate, output_framerate, output_com
         # Print strings on the image
         # cv2.putText(image, string, location, font, fontscale, fontcolor, fontthickness, linetype)
         if overlay:
-            StringTime = f"t={FancyTimeFormat(idx / input_framerate, len(images) / input_framerate, mode='auto')}"
+            # StringTime = f"t={FancyTimeFormat(idx / input_framerate, len(images) / input_framerate, mode='auto')}"
+            StringTime = f"t={FancyTimeFormat(timeFromStart[idx], timeFromStart[-1], mode=overlayformat)}"
             cv2.putText(img, StringTime, (xSize, ySize), font, fontScale, fontColor, thickness, lineType)
 
             StringPathFolder = textwrap.wrap(f"Original path: {folder_path}", width=100)

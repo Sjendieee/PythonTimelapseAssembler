@@ -2,7 +2,6 @@
   "fps_output": "10",
   "fps_input": "1",
   "compression_rate": "90",
-  "rawvideo": false,
   "overlay": true,
-  "newHeight": "1800"
+  "inputframerate": "Read from modified date (Windows only)"
 }
