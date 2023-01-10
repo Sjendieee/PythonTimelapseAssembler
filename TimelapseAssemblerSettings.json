@@ -1,6 +1,6 @@
 {
-  "fps_output": "24",
-  "fps_input": "1000",
+  "fps_output": "10",
+  "fps_input": "1",
   "compression_rate": "90",
   "rawvideo": false,
   "overlay": true,

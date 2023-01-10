@@ -54,7 +54,7 @@ def FancyTimeFormat(t, max_t, mode='variable'):
     return out
 
 
-def AssembleTimelapse(folder_path, input_framerate, output_framerate, output_compression, overlay=True):
+def AssembleTimelapse(folder_path, input_framerate, output_framerate, output_compression, window, overlay=True):
     if int(output_framerate) > 100 or int(output_framerate) < 1:
         raise Exception(f"{datetime.now().strftime('%H:%M:%S')} ERROR     Choose an output frame rate between 1 and 100.")
     if int(output_compression) > 100 or int(output_compression) < 10:
@@ -133,6 +133,7 @@ def AssembleTimelapse(folder_path, input_framerate, output_framerate, output_com
         video.write(img)  # write frame to file
         timetracker.append(time.time() - start)  # add elapsed time to timetracker array
         TimeRemaining(timetracker, len(images) - idx)  # estimate remaining time based on average time per iteration and iterations left
+        window.Refresh()
 
 
 

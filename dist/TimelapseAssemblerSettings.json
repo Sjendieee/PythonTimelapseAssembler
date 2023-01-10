@@ -1,0 +1,8 @@
+{
+  "fps_output": "15",
+  "fps_input": "1",
+  "compression_rate": "90",
+  "rawvideo": false,
+  "overlay": true,
+  "newHeight": ""
+}

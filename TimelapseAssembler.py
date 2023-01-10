@@ -7,7 +7,7 @@ import os
 import cv2
 import sys
 
-version = '1.4 (16-08-2022)'
+version = '1.5 (10-10-2023)'
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -166,7 +166,7 @@ while True:
                 CreateOCAVideo(folder, int(values["fps_output"]), int(values["newHeight"]))
             else:
                 overlay = values['overlay']
-                AssembleTimelapse(folder, int(values["fps_input"]), int(values["fps_output"]), int(values["compression_rate"]), overlay=overlay)
+                AssembleTimelapse(folder, int(values["fps_input"]), int(values["fps_output"]), int(values["compression_rate"]), window, overlay=overlay)
         else:
             print(f"{datetime.now().strftime('%H:%M:%S')} ERROR     No folder selected.")
 
