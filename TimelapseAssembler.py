@@ -8,7 +8,7 @@ import cv2
 import sys
 import numpy as np
 
-version = '1.6 (10-10-2023)'
+version = '1.7 (11-10-2023)'
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -48,7 +48,7 @@ settings_row = [
     ],
     [
         sg.Text('Output frame rate'),
-        sg.InputText(size=(10, 1), key='fps_output')
+        sg.InputText(size=(10, 1), key='fps_output', enable_events=True)
     ],
     [
         sg.Text('Compression rate (100=best, 10=worst)'),
@@ -63,11 +63,15 @@ settings_row = [
     #     sg.Checkbox('Make safe for import OCA (rawvideo)', key='rawvideo', enable_events=True)
     # ],
     [
-        sg.Checkbox('Overlay video with information', key='overlay', enable_events=True)
+        sg.Checkbox('Overlay video with information', key='overlay', enable_events=True, default=True)
     ],
     [
         sg.Text("Time format of overlay"),
         sg.Combo(['auto', 'variable', 'ms', 'sec', 'min', 'hrs'], enable_events=True, key='overlayformat', default_value='auto'),
+    ],
+    [
+        sg.Text('Use every Nth frame'),
+        sg.InputText(size=(10, 1), key='skip_frame', default_text='1', enable_events=True)
     ],
 ]
 
@@ -145,17 +149,32 @@ def SetInitialValues():
             #     window['fps_input'].update(disabled=False, text_color='black')
             #     window['newHeight'].update(disabled=True, text_color='grey')
             #     window['calcheight'].update(disabled=True)
-            if settings['inputframerate'] != 'Fixed':
+
+            # set initial disabled buttons
+            if settings['fps_input'] != 'Fixed':
                 window['fps_input'].update(disabled=True, text_color='grey')
             if settings['overlay'] == False:
                 window['overlayformat'].update(disabled=True, text_color='grey')
+
 
             print(f"{datetime.now().strftime('%H:%M:%S')} OK        Default settings loaded from 'TimelapseAssemblerSettings.json'.")
 
     except:
         print(f"{datetime.now().strftime('%H:%M:%S')} WARNING   No default settings found. Press 'Set settings as default' to create default settings.")
+        # set initial disabled buttons if no default settings are available
+        window['fps_input'].update(disabled=False, text_color='black')
+        window['overlayformat'].update(disabled=False)
+        window['overlay'].update(disabled=False)
+        window['inputframerate'].update('Fixed')
 
 
+def cnt_images_in_folder(folder):
+    files = os.listdir(folder)
+    cnt_files = len(files)
+    supported_files = [file.endswith((".tiff", ".png", '.jpg', '.jpeg', '.bmp')) for file in files]
+    cnt_supported_files = sum(supported_files)
+    cnt_images_analyzed = round(cnt_supported_files / int(values['skip_frame']))
+    return cnt_files, cnt_supported_files, cnt_images_analyzed
 
 window = sg.Window("Simple Timelapse Assembler", layout, finalize=True, icon=icon_path)
 SetInitialValues()
@@ -168,10 +187,28 @@ while True:
     # Folder name was filled in, make a list of files in the folder
     if event == "-FOLDER-":
         folder = values["-FOLDER-"]
-        files = os.listdir(folder)
-        supported_files = [file.endswith((".tiff", ".png", '.jpg', '.jpeg', '.bmp')) for file in files]
-        cnt_supported_files = sum(supported_files)
-        print(f"{datetime.now().strftime('%H:%M:%S')} Folder {folder} selected, with {cnt_supported_files} supported image files ({len(files)-cnt_supported_files} files ignored).")
+        cnt_files, cnt_supported_files, cnt_images_analyzed = cnt_images_in_folder(folder)
+        if values['fps_output']:
+            extra_str = f" (about {round(cnt_images_analyzed / int(values['fps_output']))} seconds)"
+        else:
+            extra_str = ''
+        print(f"{datetime.now().strftime('%H:%M:%S')} Folder {folder} selected, with {cnt_supported_files} supported image files ({cnt_files-cnt_supported_files} files ignored). {cnt_images_analyzed} used for movie{extra_str}.")
+
+    if event == 'skip_frame' and values["-FOLDER-"]:
+        folder = values["-FOLDER-"]
+        cnt_files, cnt_supported_files, cnt_images_analyzed = cnt_images_in_folder(folder)
+        if values['fps_output']:
+            extra_str = f" (about {round(cnt_images_analyzed / int(values['fps_output']))} seconds)"
+        else:
+            extra_str = ''
+        print(f"{datetime.now().strftime('%H:%M:%S')} {cnt_supported_files} images in total, movie will consist of {cnt_images_analyzed} images{extra_str}.")
+
+    if event == 'fps_output' and values["-FOLDER-"]:
+        folder = values["-FOLDER-"]
+        cnt_files, cnt_supported_files, cnt_images_analyzed = cnt_images_in_folder(folder)
+        extra_str = f" (about {round(cnt_images_analyzed / int(values['fps_output']))} seconds)"
+        print(f"{datetime.now().strftime('%H:%M:%S')} {cnt_supported_files} images in total, movie will consist of {cnt_images_analyzed} images{extra_str}.")
+
 
     if event == "Create timelapse":
         folder = values["-FOLDER-"]
@@ -185,7 +222,9 @@ while True:
             #     overlay = values['overlay']
             #     AssembleTimelapse(folder, values['inputframerate'], int(values["fps_input"]), int(values["fps_output"]), int(values["compression_rate"]), window, overlay=overlay, overlayformat=values['overlayformat'])
             overlay = values['overlay']
-            AssembleTimelapse(folder, values['inputframerate'], int(values["fps_input"]), int(values["fps_output"]), int(values["compression_rate"]), window, overlay=overlay, overlayformat=values['overlayformat'])
+            skip_frame = int(values['skip_frame'])
+            fps_input = int(values["fps_input"]) if values["fps_input"] else 0
+            AssembleTimelapse(folder, values['inputframerate'], fps_input, int(values["fps_output"]), int(values["compression_rate"]), window, overlay=overlay, overlayformat=values['overlayformat'], skipframe=skip_frame)
 
         else:
             print(f"{datetime.now().strftime('%H:%M:%S')} ERROR     No folder selected.")

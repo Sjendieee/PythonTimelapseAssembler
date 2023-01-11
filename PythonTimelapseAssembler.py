@@ -91,7 +91,7 @@ def get_timestamps(filenames_fullpath, method, input_fps=False):
     return deltatime
 
 
-def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_framerate, output_compression, window, overlay=True, overlayformat='auto'):
+def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_framerate, output_compression, window, overlay=True, overlayformat='auto', skipframe=1):
 
     if int(output_framerate) > 100 or int(output_framerate) < 1:
         raise Exception(f"{datetime.now().strftime('%H:%M:%S')} ERROR     Choose an output frame rate between 1 and 100.")
@@ -118,7 +118,9 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_fra
 
     print(f"{datetime.now().strftime('%H:%M:%S')} Validating images ... This might take a while (depending on the amount of imageS)")
     window.Refresh()
-    for idx, image in enumerate(images):
+    analyze_images = np.arange(0, len(images), skipframe)
+    for idx in analyze_images:
+        image = images[idx]
         frame = cv2.imread(os.path.join(folder_path, image))
         if frame is None or (inputHeight, inputWidth, referenceLayers) != frame.shape:
             raise Exception(f"{datetime.now().strftime('%H:%M:%S')} Not possible to create timelapse. All images need to be of same shape. Image '{image}' has a different shape than the first image '{images[0]}'.")
@@ -145,7 +147,8 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_fra
     nowstr = now.strftime('%d-%m-%Y, %H:%M:%S')
 
     timetracker = []
-    for idx, imagepath in enumerate(images):
+    for idx in analyze_images:
+        imagepath = images[idx]
         start = time.time()  # start timer to calculate iteration time
         img = cv2.imread(os.path.join(folder_path, imagepath))  # load image
         img = cv2.resize(img, (outputWidth, outputHeight), interpolation=cv2.INTER_AREA)
@@ -179,7 +182,7 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_fra
 
         video.write(img)  # write frame to file
         timetracker.append(time.time() - start)  # add elapsed time to timetracker array
-        TimeRemaining(timetracker, len(images) - idx)  # estimate remaining time based on average time per iteration and iterations left
+        TimeRemaining(timetracker, len(analyze_images) - idx)  # estimate remaining time based on average time per iteration and iterations left
         window.Refresh()
 
 
