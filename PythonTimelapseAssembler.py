@@ -5,6 +5,7 @@ import statistics
 from datetime import datetime
 import textwrap
 import numpy as np
+from natsort import natsorted
 
 # executable created via Terminal in Pycharm: pyinstaller -F PythonTimelapseAssembler.py
 
@@ -82,7 +83,7 @@ def get_timestamps(filenames_fullpath, method, input_fps=False):
         #     match = re.search(config.get("GENERAL", "FILE_TIMESTAMPFORMAT_RE"), f)  # we are looking for 14 digit number
         #     if not match:
         #         logging.error("No 14-digit timestamp found in filename.")
-        #         exit()
+        #         50()
         #     try:
         #         timestamps.append(datetime.strptime(match.group(0), config.get("GENERAL", "FILE_TIMESTAMPFORMAT")))
         #     except:
@@ -90,8 +91,14 @@ def get_timestamps(filenames_fullpath, method, input_fps=False):
         # deltatime = timestamps_to_deltat(timestamps)
     return deltatime
 
+def validate_images(analyze_images, images, folder_path, inputHeight, inputWidth, referenceLayers):
+    for idx in analyze_images:
+        image = images[idx]
+        frame = cv2.imread(os.path.join(folder_path, image))
+        if frame is None or (inputHeight, inputWidth, referenceLayers) != frame.shape:
+            raise Exception(f"{datetime.now().strftime('%H:%M:%S')} Not possible to create timelapse. All images need to be of same shape. Image '{image}' has a different shape than the first image '{images[0]}'.")
 
-def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_framerate, output_compression, window, overlay=True, overlayformat='auto', skipframe=1):
+def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_framerate, output_compression, window, overlay=True, overlayformat='auto', skipframe=1, skip_validation=True):
 
     if int(output_framerate) > 100 or int(output_framerate) < 1:
         raise Exception(f"{datetime.now().strftime('%H:%M:%S')} ERROR     Choose an output frame rate between 1 and 100.")
@@ -106,6 +113,7 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_fra
     images = [img for img in os.listdir(folder_path) if img.endswith(".tiff") or img.endswith(".png") or img.endswith(".jpg") or img.endswith(".jpeg") or img.endswith(".bmp")]
     if not images:
         raise Exception(f"{datetime.now().strftime('%H:%M:%S')} No images with extension '.tiff', '.png', '.jpg', '.jpeg' or '.bmp' found in selected folder.")
+    images = natsorted(images)
     window.Refresh()
 
     referenceFrame = cv2.imread(os.path.join(folder_path, images[0]))
@@ -115,17 +123,15 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_fra
     deltaTime = get_timestamps(images_fullpath, framerate_method, input_fps=input_framerate)
     timeFromStart = np.cumsum(deltaTime)
 
-
-    print(f"{datetime.now().strftime('%H:%M:%S')} Validating images ... This might take a while (depending on the amount of imageS)")
-    window.Refresh()
     analyze_images = np.arange(0, len(images), skipframe)
-    for idx in analyze_images:
-        image = images[idx]
-        frame = cv2.imread(os.path.join(folder_path, image))
-        if frame is None or (inputHeight, inputWidth, referenceLayers) != frame.shape:
-            raise Exception(f"{datetime.now().strftime('%H:%M:%S')} Not possible to create timelapse. All images need to be of same shape. Image '{image}' has a different shape than the first image '{images[0]}'.")
-    print(f"{datetime.now().strftime('%H:%M:%S')} Validation passed successfully.")
-    window.Refresh()
+
+    if not skip_validation:
+        print(f"{datetime.now().strftime('%H:%M:%S')} Validating images ... This might take a while (depending on the amount of images).")
+        window.Refresh()
+        window.perform_long_operation(validate_images(analyze_images, images, folder_path, inputHeight, inputWidth, referenceLayers), f"{datetime.now().strftime('%H:%M:%S')} Validation passed successfully.")
+        window.Refresh()
+    else:
+        print(f"{datetime.now().strftime('%H:%M:%S')} Validation of input images is skipped.")
 
 
     outputHeight = round(inputHeight * (output_compression / 100))
@@ -182,7 +188,7 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_fra
 
         video.write(img)  # write frame to file
         timetracker.append(time.time() - start)  # add elapsed time to timetracker array
-        TimeRemaining(timetracker, len(analyze_images) - idx)  # estimate remaining time based on average time per iteration and iterations left
+        TimeRemaining(timetracker, len(analyze_images) - idx/skipframe)  # estimate remaining time based on average time per iteration and iterations left
         window.Refresh()
 
 

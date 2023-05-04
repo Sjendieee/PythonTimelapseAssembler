@@ -8,7 +8,7 @@ import cv2
 import sys
 import numpy as np
 
-version = '1.7 (11-10-2023)'
+version = '1.8 (4-5-2023)'
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -18,7 +18,7 @@ def resource_path(relative_path):
 icon_path = resource_path("timelapse.ico")
 
 # In prompt:
-# PyInstaller -F --onefile --noconsole -n TimelapseAssembler-1_3 --icon=timelapse.ico --add-data timelapse.ico;ico .\TimelapseAssembler.py
+# PyInstaller -F --onefile --noconsole -n TimelapseAssembler-1_8 --icon=timelapse.ico --add-data timelapse.ico;ico .\TimelapseAssembler.py
 
 settings_row = [
     [
@@ -64,6 +64,9 @@ settings_row = [
     # ],
     [
         sg.Checkbox('Overlay video with information', key='overlay', enable_events=True, default=True)
+    ],
+    [
+        sg.Checkbox('Skip image validation', key='skip_validation', enable_events=True, default=False)
     ],
     [
         sg.Text("Time format of overlay"),
@@ -113,8 +116,10 @@ def SaveAsDefault():
         'compression_rate': window["compression_rate"].get(),
         # 'rawvideo': window["rawvideo"].get(),
         'overlay': window["overlay"].get(),
+        'skip_validation': window["skip_validation"].get(),
         # 'newHeight': window["newHeight"].get(),
         'inputframerate': window["inputframerate"].get(),
+        'skip_frame': window["skip_frame"].get(),
     }
     with open('TimelapseAssemblerSettings.json', 'w') as f:
         json.dump(data, f, indent=2)
@@ -134,9 +139,12 @@ def SetInitialValues():
             window["compression_rate"].update(settings['compression_rate'])
             # window["rawvideo"].update(settings['rawvideo'])
             window["overlay"].update(settings['overlay'])
+            window["skip_validation"].update(settings['skip_validation'])
             # window["newHeight"].update(settings['newHeight'])
             window["inputframerate"].update(settings['inputframerate'])
-            window["overlayformat"].update(settings['overlayformat'])
+            # window["overlayformat"].update(settings['overlayformat'])
+            # print(settings)
+            window["skip_frame"].update(settings['skip_frame'])
             # if settings['rawvideo'] == True:
             #     window['overlay'].update(disabled=True)
             #     window['compression_rate'].update(disabled=True, text_color='grey')
@@ -152,7 +160,7 @@ def SetInitialValues():
 
             # set initial disabled buttons
             if settings['fps_input'] != 'Fixed':
-                window['fps_input'].update(disabled=True, text_color='grey')
+                window['fps_input'].update(disabled=False, text_color='black')
             if settings['overlay'] == False:
                 window['overlayformat'].update(disabled=True, text_color='grey')
 
@@ -195,18 +203,19 @@ while True:
         print(f"{datetime.now().strftime('%H:%M:%S')} Folder {folder} selected, with {cnt_supported_files} supported image files ({cnt_files-cnt_supported_files} files ignored). {cnt_images_analyzed} used for movie{extra_str}.")
 
     if event == 'skip_frame' and values["-FOLDER-"]:
-        folder = values["-FOLDER-"]
-        cnt_files, cnt_supported_files, cnt_images_analyzed = cnt_images_in_folder(folder)
-        if values['fps_output']:
-            extra_str = f" (about {round(cnt_images_analyzed / int(values['fps_output']))} seconds)"
-        else:
-            extra_str = ''
-        print(f"{datetime.now().strftime('%H:%M:%S')} {cnt_supported_files} images in total, movie will consist of {cnt_images_analyzed} images{extra_str}.")
+        if values['skip_frame']:
+            folder = values["-FOLDER-"]
+            cnt_files, cnt_supported_files, cnt_images_analyzed = cnt_images_in_folder(folder)
+            if values['fps_output']:
+                extra_str = f" (about {round(cnt_images_analyzed / int(values['fps_output']))} seconds)"
+            else:
+                extra_str = ''
+            print(f"{datetime.now().strftime('%H:%M:%S')} {cnt_supported_files} images in total, movie will consist of {cnt_images_analyzed} images{extra_str}.")
 
     if event == 'fps_output' and values["-FOLDER-"]:
         folder = values["-FOLDER-"]
         cnt_files, cnt_supported_files, cnt_images_analyzed = cnt_images_in_folder(folder)
-        extra_str = f" (about {round(cnt_images_analyzed / int(values['fps_output']))} seconds)"
+        extra_str = f" (final video about {round(cnt_images_analyzed / int(values['fps_output']))} seconds)"
         print(f"{datetime.now().strftime('%H:%M:%S')} {cnt_supported_files} images in total, movie will consist of {cnt_images_analyzed} images{extra_str}.")
 
 
@@ -224,7 +233,7 @@ while True:
             overlay = values['overlay']
             skip_frame = int(values['skip_frame'])
             fps_input = int(values["fps_input"]) if values["fps_input"] else 0
-            AssembleTimelapse(folder, values['inputframerate'], fps_input, int(values["fps_output"]), int(values["compression_rate"]), window, overlay=overlay, overlayformat=values['overlayformat'], skipframe=skip_frame)
+            AssembleTimelapse(folder, values['inputframerate'], fps_input, int(values["fps_output"]), int(values["compression_rate"]), window, overlay=overlay, overlayformat=values['overlayformat'], skipframe=skip_frame, skip_validation=values['skip_validation'])
 
         else:
             print(f"{datetime.now().strftime('%H:%M:%S')} ERROR     No folder selected.")
