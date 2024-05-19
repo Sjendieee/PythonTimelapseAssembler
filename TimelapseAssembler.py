@@ -8,7 +8,7 @@ import cv2
 import sys
 import numpy as np
 
-version = '1.8 (4-5-2023)'
+version = '1.9 (17-05-2024)'
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -63,6 +63,12 @@ settings_row = [
     #     sg.Checkbox('Make safe for import OCA (rawvideo)', key='rawvideo', enable_events=True)
     # ],
     [
+        sg.Text("Output format"),
+        sg.Combo(['avi', 'mp4'],
+                 enable_events=True, key='output_format', default_value='mp4')
+    ],
+
+    [
         sg.Checkbox('Overlay video with information', key='overlay', enable_events=True, default=True)
     ],
     [
@@ -114,6 +120,7 @@ def SaveAsDefault():
         'fps_output': window["fps_output"].get(),
         'fps_input': window["fps_input"].get(),
         'compression_rate': window["compression_rate"].get(),
+        'output_format': window["output_format"].get(),
         # 'rawvideo': window["rawvideo"].get(),
         'overlay': window["overlay"].get(),
         'skip_validation': window["skip_validation"].get(),
@@ -128,7 +135,7 @@ def SaveAsDefault():
 
 def SetInitialValues():
     print('----- Simple Timelapse Assembler -----')
-    print('by Harmen Hoek')
+    print('by Harmen Hoek & Sander Reuvekamp')
     print(f"Version: {version} (https://github.com/harmenhoek/PythonTimelapseAssembler)")
 
     try:
@@ -137,6 +144,7 @@ def SetInitialValues():
             window["fps_output"].update(settings['fps_output'])
             window["fps_input"].update(settings['fps_input'])
             window["compression_rate"].update(settings['compression_rate'])
+            window["output_format"].update(settings['output_format'])
             # window["rawvideo"].update(settings['rawvideo'])
             window["overlay"].update(settings['overlay'])
             window["skip_validation"].update(settings['skip_validation'])
@@ -233,7 +241,7 @@ while True:
             overlay = values['overlay']
             skip_frame = int(values['skip_frame'])
             fps_input = int(values["fps_input"]) if values["fps_input"] else 0
-            AssembleTimelapse(folder, values['inputframerate'], fps_input, int(values["fps_output"]), int(values["compression_rate"]), window, overlay=overlay, overlayformat=values['overlayformat'], skipframe=skip_frame, skip_validation=values['skip_validation'])
+            AssembleTimelapse(folder, values['inputframerate'], fps_input, int(values["fps_output"]), int(values["compression_rate"]), values["output_format"], window, overlay=overlay, overlayformat=values['overlayformat'], skipframe=skip_frame, skip_validation=values['skip_validation'])
 
         else:
             print(f"{datetime.now().strftime('%H:%M:%S')} ERROR     No folder selected.")

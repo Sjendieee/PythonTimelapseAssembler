@@ -98,7 +98,7 @@ def validate_images(analyze_images, images, folder_path, inputHeight, inputWidth
         if frame is None or (inputHeight, inputWidth, referenceLayers) != frame.shape:
             raise Exception(f"{datetime.now().strftime('%H:%M:%S')} Not possible to create timelapse. All images need to be of same shape. Image '{image}' has a different shape than the first image '{images[0]}'.")
 
-def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_framerate, output_compression, window, overlay=True, overlayformat='auto', skipframe=1, skip_validation=True):
+def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_framerate, output_compression, output_format, window, overlay=True, overlayformat='auto', skipframe=1, skip_validation=True):
 
     if int(output_framerate) > 100 or int(output_framerate) < 1:
         raise Exception(f"{datetime.now().strftime('%H:%M:%S')} ERROR     Choose an output frame rate between 1 and 100.")
@@ -107,8 +107,9 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_fra
 
 
     now = datetime.now()
+    #TODO make variable output_format (avi or mp4).
+    video_name = f"{os.path.basename(folder_path)}_PROC{now.strftime('%Y-%m-%d-%H-%M-%S')}.{output_format}"
 
-    video_name = f"{os.path.basename(folder_path)}_PROC{now.strftime('%Y-%m-%d-%H-%M-%S')}.avi"
     outputfile = os.path.join(folder_path, video_name)
     images = [img for img in os.listdir(folder_path) if img.endswith(".tiff") or img.endswith(".png") or img.endswith(".jpg") or img.endswith(".jpeg") or img.endswith(".bmp")]
     if not images:
