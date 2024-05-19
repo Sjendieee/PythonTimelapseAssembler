@@ -1,4 +1,4 @@
-import PySimpleGUI as sg
+import PySimpleGUI as sg    #install an older (non-paid) version: v4.60.3
 import json
 from PythonTimelapseAssembler import AssembleTimelapse
 from OCA_TiffToVideo import CreateOCAVideo
