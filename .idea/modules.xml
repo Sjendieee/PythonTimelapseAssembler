@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../TimelapsAssembler/.idea/TimelapsAssembler.iml" filepath="$PROJECT_DIR$/../TimelapsAssembler/.idea/TimelapsAssembler.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/timelapseassembler.iml" filepath="$PROJECT_DIR$/.idea/timelapseassembler.iml" />
     </modules>
   </component>

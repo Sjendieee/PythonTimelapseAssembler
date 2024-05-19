@@ -20,6 +20,10 @@ icon_path = resource_path("timelapse.ico")
 # In prompt:
 # PyInstaller -F --onefile --noconsole -n TimelapseAssembler-1_8 --icon=timelapse.ico --add-data timelapse.ico;ico .\TimelapseAssembler.py
 
+#To make .exe executable:                                     _version
+# pyinstaller -F --onefile --noconsole -n TimelapseAssembler-1_9 --icon=timelapse.ico --add-data timelapse.ico:ico .\TimelapseAssembler.py
+
+
 settings_row = [
     [
         sg.T('Settings', font='_ 14', justification='c', expand_x=True),
