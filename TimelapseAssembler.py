@@ -1,4 +1,5 @@
-import PySimpleGUI as sg    #install an older (non-paid) version: v4.60.3
+#import PySimpleGUI as sg    #install an older (non-paid) version: v4.60.3
+import FreeSimpleGUI as sg  #a fork from above, since those older packages are removed. https://github.com/spyoungtech/FreeSimpleGUI
 import json
 from PythonTimelapseAssembler import AssembleTimelapse
 from OCA_TiffToVideo import CreateOCAVideo
@@ -8,7 +9,7 @@ import cv2
 import sys
 import numpy as np
 
-version = '1.9 (17-05-2024)'
+version = '1.10 (27-06-2025)'
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -44,6 +45,17 @@ settings_row = [
         sg.Text('Input frame rate'),
         sg.InputText(size=(10, 1), key='fps_input', enable_events=True, background_color='white')
     ],
+
+    [
+        sg.Text("Input frames"),
+        sg.Combo(['All', 'Selection'], enable_events=True, key='inputframes', default_value='All'),
+    ],
+    [
+        sg.Text('Input frame selection'),
+        sg.InputText(size=(10, 1), key='frames_input', enable_events=True, background_color='white')
+    ],
+
+
     [
         sg.Text(" ")
     ],
@@ -68,13 +80,17 @@ settings_row = [
     # ],
     [
         sg.Text("Output format"),
-        sg.Combo(['avi', 'mp4'],
-                 enable_events=True, key='output_format', default_value='mp4')
+        sg.Combo(['avi', 'mp4'], enable_events=True, key='output_format', default_value='mp4')
     ],
 
+    # [
+    #     sg.Checkbox('Overlay video with information', key='overlay', enable_events=True, default=True)
+    # ],
     [
-        sg.Checkbox('Overlay video with information', key='overlay', enable_events=True, default=True)
+        sg.Text('Overlay video with information'),
+        sg.Combo(['All', 'time only', 'none'], enable_events=True, key='overlay',  default_value='All')
     ],
+
     [
         sg.Checkbox('Skip image validation', key='skip_validation', enable_events=True, default=False)
     ],
@@ -123,13 +139,13 @@ def SaveAsDefault():
     data = {
         'fps_output': window["fps_output"].get(),
         'fps_input': window["fps_input"].get(),
+        'frames_input': window["frames_input"].get(),
         'compression_rate': window["compression_rate"].get(),
         'output_format': window["output_format"].get(),
-        # 'rawvideo': window["rawvideo"].get(),
         'overlay': window["overlay"].get(),
         'skip_validation': window["skip_validation"].get(),
-        # 'newHeight': window["newHeight"].get(),
         'inputframerate': window["inputframerate"].get(),
+        'inputframes': window["inputframes"].get(),
         'skip_frame': window["skip_frame"].get(),
     }
     with open('TimelapseAssemblerSettings.json', 'w') as f:
@@ -140,39 +156,28 @@ def SaveAsDefault():
 def SetInitialValues():
     print('----- Simple Timelapse Assembler -----')
     print('by Harmen Hoek & Sander Reuvekamp')
-    print(f"Version: {version} (https://github.com/harmenhoek/PythonTimelapseAssembler)")
+    print(f"Version: {1.8} (https://github.com/harmenhoek/PythonTimelapseAssembler)")
+    print(f"Version: {version} (https://github.com/Sjendieee/PythonTimelapseAssembler)")
 
     try:
         with open('TimelapseAssemblerSettings.json') as f:
             settings = json.load(f)
             window["fps_output"].update(settings['fps_output'])
             window["fps_input"].update(settings['fps_input'])
+            window["frames_input"].update(settings['frames_input'])
             window["compression_rate"].update(settings['compression_rate'])
             window["output_format"].update(settings['output_format'])
-            # window["rawvideo"].update(settings['rawvideo'])
             window["overlay"].update(settings['overlay'])
             window["skip_validation"].update(settings['skip_validation'])
-            # window["newHeight"].update(settings['newHeight'])
             window["inputframerate"].update(settings['inputframerate'])
-            # window["overlayformat"].update(settings['overlayformat'])
-            # print(settings)
+            window["inputframes"].update(settings['inputframes'])
             window["skip_frame"].update(settings['skip_frame'])
-            # if settings['rawvideo'] == True:
-            #     window['overlay'].update(disabled=True)
-            #     window['compression_rate'].update(disabled=True, text_color='grey')
-            #     window['fps_input'].update(disabled=True, text_color='grey')
-            #     window['newHeight'].update(disabled=False, text_color='black')
-            #     window['calcheight'].update(disabled=False)
-            # if settings['rawvideo'] == False:
-            #     window['overlay'].update(disabled=False)
-            #     window['compression_rate'].update(disabled=False, text_color='black')
-            #     window['fps_input'].update(disabled=False, text_color='black')
-            #     window['newHeight'].update(disabled=True, text_color='grey')
-            #     window['calcheight'].update(disabled=True)
 
             # set initial disabled buttons
             if settings['fps_input'] != 'Fixed':
                 window['fps_input'].update(disabled=False, text_color='black')
+            if settings['frames_input'] == 'All':
+                window['frames_input'].update(disabled=True, text_color='grey')
             if settings['overlay'] == False:
                 window['overlayformat'].update(disabled=True, text_color='grey')
 
@@ -183,9 +188,12 @@ def SetInitialValues():
         print(f"{datetime.now().strftime('%H:%M:%S')} WARNING   No default settings found. Press 'Set settings as default' to create default settings.")
         # set initial disabled buttons if no default settings are available
         window['fps_input'].update(disabled=False, text_color='black')
+        window['frames_input'].update(disabled=True, text_color='grey')
         window['overlayformat'].update(disabled=False)
         window['overlay'].update(disabled=False)
         window['inputframerate'].update('Fixed')
+        window['inputframes'].update('All')
+
 
 
 def cnt_images_in_folder(folder):
@@ -245,7 +253,20 @@ while True:
             overlay = values['overlay']
             skip_frame = int(values['skip_frame'])
             fps_input = int(values["fps_input"]) if values["fps_input"] else 0
-            AssembleTimelapse(folder, values['inputframerate'], fps_input, int(values["fps_output"]), int(values["compression_rate"]), values["output_format"], window, overlay=overlay, overlayformat=values['overlayformat'], skipframe=skip_frame, skip_validation=values['skip_validation'])
+
+            try:
+                if values["frames_input"]:
+                    framestart, frameend = values["frames_input"].split(',')
+                    if framestart < 0 or frameend > cnt_supported_files:
+                        raise Exception( f"{datetime.now().strftime('%H:%M:%S')} ERROR     Selection reaches outside possible range (0< or >{cnt_supported_files}: nr of supported files)")
+                    frames_input = [int(framestart), int(frameend)]
+                else:
+                    frames_input = 0
+            except:
+                raise Exception(f"{datetime.now().strftime('%H:%M:%S')} ERROR     Give a selection of desired frames: input split by a comma 'start, end' ")
+
+            AssembleTimelapse(folder, values['inputframerate'], fps_input, values['inputframes'], frames_input,
+                              int(values["fps_output"]), int(values["compression_rate"]), values["output_format"], window, overlay=overlay, overlayformat=values['overlayformat'], skipframe=skip_frame, skip_validation=values['skip_validation'])
 
         else:
             print(f"{datetime.now().strftime('%H:%M:%S')} ERROR     No folder selected.")
@@ -253,35 +274,17 @@ while True:
     if event == 'Set settings as default':
         SaveAsDefault()
 
-    # if event == 'calcheight':
-    #     folder = values["-FOLDER-"]
-    #     if not folder:
-    #         print("Select an image folder first.")
-    #     else:
-    #         files = os.listdir(folder)
-    #         supported_files = [file.endswith((".tiff", ".png", '.jpg', '.jpeg', '.bmp')) for file in files]
-    #         cnt_supported_files = sum(supported_files)
-    #         newHeight = int(140/cnt_supported_files*1800)  # based on some test results importing into OCA
-    #         print(f"Maximum output height is {newHeight} pixels.")
-    #         first_image = [file for file, y in zip(files, supported_files) if y == True][0]
-    #         if first_image:
-    #             first_image_height, w, _ = cv2.imread(os.path.join(folder, first_image)).shape
-    #             if newHeight > first_image_height:
-    #                 print(f"Maximum output height exceeds original image height ({first_image_height} pixels). Setting output height to {first_image_height} pixels.")
-    #                 newHeight = first_image_height
-    #             if newHeight > 1800:
-    #                 print("Maximum output height exceeds 1800 pixels, thus troublesome to work with in OCA software. Setting output height to 1800 pixels. ")
-    #                 newHeight = 1800
-    #
-    #             window["newHeight"].update(int(newHeight))
-    #         else:
-    #             print(f"{datetime.now().strftime('%H:%M:%S')}ERROR     No images with extension '.tiff', '.png', '.jpg', '.jpeg' or '.bmp' found in selected folder.")
-
     if event == 'inputframerate':
         if values['inputframerate'] == 'Fixed':
             window['fps_input'].update(disabled=False, text_color='black')
         else:
             window['fps_input'].update(disabled=True, text_color='grey')
+
+    if event == 'inputframes':
+        if values['inputframes'] == 'All':
+            window['frames_input'].update(disabled=True, text_color='grey')
+        else:
+            window['frames_input'].update(disabled=False, text_color='black')
 
     if event == 'overlay':
         if values['overlay']:
@@ -289,22 +292,3 @@ while True:
         else:
             window['overlayformat'].update(disabled=True)
 
-
-    # if event == 'rawvideo':
-    #     if values['rawvideo'] == True:
-    #         window['overlay'].update(disabled=True)
-    #         window['compression_rate'].update(disabled=True, text_color='grey')
-    #         window['fps_input'].update(disabled=True, text_color='grey')
-    #         window['newHeight'].update(disabled=False, text_color='black')
-    #         window['calcheight'].update(disabled=False)
-    #         window['inputframerate'].update(disabled=True, text_color='grey')
-    #     if values['rawvideo'] == False:
-    #         window['overlay'].update(disabled=False)
-    #         window['compression_rate'].update(disabled=False, text_color='black')
-    #         window['newHeight'].update(disabled=True, text_color='grey')
-    #         window['calcheight'].update(disabled=True)
-    #         if window['inputframerate'] == 'Fixed':
-    #             window['fps_input'].update(disabled=False, text_color='black')
-    #         else:
-    #             window['fps_input'].update(disabled=True, text_color='grey')
-    #         window['inputframerate'].update(disabled=False, text_color='black')

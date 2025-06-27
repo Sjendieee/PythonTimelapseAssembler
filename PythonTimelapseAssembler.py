@@ -98,7 +98,7 @@ def validate_images(analyze_images, images, folder_path, inputHeight, inputWidth
         if frame is None or (inputHeight, inputWidth, referenceLayers) != frame.shape:
             raise Exception(f"{datetime.now().strftime('%H:%M:%S')} Not possible to create timelapse. All images need to be of same shape. Image '{image}' has a different shape than the first image '{images[0]}'.")
 
-def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_framerate, output_compression, output_format, window, overlay=True, overlayformat='auto', skipframe=1, skip_validation=True):
+def AssembleTimelapse(folder_path, framerate_method, input_framerate, frameselection, inputframes, output_framerate, output_compression, output_format, window, overlay=True, overlayformat='auto', skipframe=1, skip_validation=True):
 
     if int(output_framerate) > 100 or int(output_framerate) < 1:
         raise Exception(f"{datetime.now().strftime('%H:%M:%S')} ERROR     Choose an output frame rate between 1 and 100.")
@@ -115,6 +115,14 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_fra
     if not images:
         raise Exception(f"{datetime.now().strftime('%H:%M:%S')} No images with extension '.tiff', '.png', '.jpg', '.jpeg' or '.bmp' found in selected folder.")
     images = natsorted(images)
+    if frameselection == 'All':
+        pass
+    else:
+        try:
+            framestart, frameend = inputframes
+        except:
+            raise Exception(f"{datetime.now().strftime('%H:%M:%S')} ERROR     Give a selection of desired frames: input split by a comma 'start, end' ")
+        images = images[framestart:frameend]
     window.Refresh()
 
     referenceFrame = cv2.imread(os.path.join(folder_path, images[0]))
@@ -162,7 +170,7 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, output_fra
 
         # Print strings on the image
         # cv2.putText(image, string, location, font, fontscale, fontcolor, fontthickness, linetype)
-        if overlay:
+        if overlay:     #TODO implement overlay ['All', 'time only', 'none'] properly !
             # StringTime = f"t={FancyTimeFormat(idx / input_framerate, len(images) / input_framerate, mode='auto')}"
             StringTime = f"t={FancyTimeFormat(timeFromStart[idx], timeFromStart[-1], mode=overlayformat)}"
             cv2.putText(img, StringTime, (xSize, ySize), font, fontScale, fontColor, thickness, lineType)
