@@ -257,7 +257,7 @@ while True:
             try:
                 if values["frames_input"]:
                     framestart, frameend = values["frames_input"].split(',')
-                    if framestart < 0 or frameend > cnt_supported_files:
+                    if int(framestart) < 0 or int(frameend) > cnt_supported_files:
                         raise Exception( f"{datetime.now().strftime('%H:%M:%S')} ERROR     Selection reaches outside possible range (0< or >{cnt_supported_files}: nr of supported files)")
                     frames_input = [int(framestart), int(frameend)]
                 else:

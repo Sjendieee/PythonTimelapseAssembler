@@ -107,7 +107,6 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, frameselec
 
 
     now = datetime.now()
-    #TODO make variable output_format (avi or mp4).
     video_name = f"{os.path.basename(folder_path)}_PROC{now.strftime('%Y-%m-%d-%H-%M-%S')}.{output_format}"
 
     outputfile = os.path.join(folder_path, video_name)
@@ -115,6 +114,7 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, frameselec
     if not images:
         raise Exception(f"{datetime.now().strftime('%H:%M:%S')} No images with extension '.tiff', '.png', '.jpg', '.jpeg' or '.bmp' found in selected folder.")
     images = natsorted(images)
+    # TODO implement frame selection properly, such that it is integrated with 'Only 1/N frames', and update in prompt the number of images analyzed+ estimated video length
     if frameselection == 'All':
         pass
     else:
@@ -170,28 +170,30 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, frameselec
 
         # Print strings on the image
         # cv2.putText(image, string, location, font, fontscale, fontcolor, fontthickness, linetype)
-        if overlay:     #TODO implement overlay ['All', 'time only', 'none'] properly !
+        if overlay != 'none':
             # StringTime = f"t={FancyTimeFormat(idx / input_framerate, len(images) / input_framerate, mode='auto')}"
+
             StringTime = f"t={FancyTimeFormat(timeFromStart[idx], timeFromStart[-1], mode=overlayformat)}"
             cv2.putText(img, StringTime, (xSize, ySize), font, fontScale, fontColor, thickness, lineType)
 
-            StringPathFolder = textwrap.wrap(f"Original path: {folder_path}", width=100)
-            offset = round(fontScale * 10)
-            for i, line in enumerate(StringPathFolder):
-                # offset = round(i * (fontScale * 10))
-                LocationPathFolder = (15 * xSize, round(ySize / 2) + offset * i)
-                cv2.putText(img, line, LocationPathFolder, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
+            if overlay == 'All':
+                StringPathFolder = textwrap.wrap(f"Original path: {folder_path}", width=100)
+                offset = round(fontScale * 10)
+                for i, line in enumerate(StringPathFolder):
+                    # offset = round(i * (fontScale * 10))
+                    LocationPathFolder = (15 * xSize, round(ySize / 2) + offset * i)
+                    cv2.putText(img, line, LocationPathFolder, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
 
-            StringCreatedOn = f"Video created: {nowstr}"
-            LocationCreatedOn = (15 * xSize, LocationPathFolder[1] + offset)
-            cv2.putText(img, StringCreatedOn, LocationCreatedOn, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
+                StringCreatedOn = f"Video created: {nowstr}"
+                LocationCreatedOn = (15 * xSize, LocationPathFolder[1] + offset)
+                cv2.putText(img, StringCreatedOn, LocationCreatedOn, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
 
-            StringPathImage = f"{imagepath}"
-            LocationPathImage = (xSize, outputHeight - 20)
-            cv2.putText(img, StringPathImage, LocationPathImage, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
+                StringPathImage = f"{imagepath}"
+                LocationPathImage = (xSize, outputHeight - 20)
+                cv2.putText(img, StringPathImage, LocationPathImage, font, fontScale * 0.3, fontColor, round(thickness * 0.5), lineType)
 
-            StringImageNumber = f"frame {idx + 1}"
-            cv2.putText(img, StringImageNumber, (xSize, ySize * 2), font, fontScale * 0.5, fontColor, round(thickness * 0.5), lineType)
+                StringImageNumber = f"frame {idx + 1}"
+                cv2.putText(img, StringImageNumber, (xSize, ySize * 2), font, fontScale * 0.5, fontColor, round(thickness * 0.5), lineType)
 
         # Compress image
 
