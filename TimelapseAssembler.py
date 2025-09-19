@@ -1,4 +1,6 @@
 #import PySimpleGUI as sg    #install an older (non-paid) version: v4.60.3
+import time
+
 import FreeSimpleGUI as sg  #a fork from above, since those older packages are removed. https://github.com/spyoungtech/FreeSimpleGUI
 import json
 from PythonTimelapseAssembler import AssembleTimelapse
@@ -8,6 +10,7 @@ import os
 import cv2
 import sys
 import numpy as np
+import traceback
 
 version = '1.10 (27-06-2025)'
 
@@ -68,7 +71,7 @@ settings_row = [
     ],
     [
         sg.Text('Compression rate (100=best, 10=worst)'),
-        sg.InputText(size=(10, 1), key='compression_rate')
+        sg.InputText(size=(10, 1), key='compression_rate', enable_events=True)
     ],
     # [
     #     sg.Text('Output video height (OCA rawvideo only)'),
@@ -156,7 +159,7 @@ def SaveAsDefault():
 def SetInitialValues():
     print('----- Simple Timelapse Assembler -----')
     print('by Harmen Hoek & Sander Reuvekamp')
-    print(f"Version: {1.8} (https://github.com/harmenhoek/PythonTimelapseAssembler)")
+    print(f"Version: {1.10} (https://github.com/harmenhoek/PythonTimelapseAssembler)")
     print(f"Version: {version} (https://github.com/Sjendieee/PythonTimelapseAssembler)")
 
     try:
@@ -208,87 +211,97 @@ window = sg.Window("Simple Timelapse Assembler", layout, finalize=True, icon=ico
 SetInitialValues()
 
 while True:
-    event, values = window.read()
-    if event == "Exit" or event == sg.WIN_CLOSED:
-        break
+    try:
+        event, values = window.read()
+        print(event)
+        if event == "Exit" or event == sg.WIN_CLOSED:
+            break
 
-    # Folder name was filled in, make a list of files in the folder
-    if event == "-FOLDER-":
-        folder = values["-FOLDER-"]
-        cnt_files, cnt_supported_files, cnt_images_analyzed = cnt_images_in_folder(folder)
-        if values['fps_output']:
-            extra_str = f" (about {round(cnt_images_analyzed / int(values['fps_output']))} seconds)"
-        else:
-            extra_str = ''
-        print(f"{datetime.now().strftime('%H:%M:%S')} Folder {folder} selected, with {cnt_supported_files} supported image files ({cnt_files-cnt_supported_files} files ignored). {cnt_images_analyzed} used for movie{extra_str}.")
-
-    if event == 'skip_frame' and values["-FOLDER-"]:
-        if values['skip_frame']:
+        # Folder name was filled in, make a list of files in the folder
+        if event == "-FOLDER-":
             folder = values["-FOLDER-"]
             cnt_files, cnt_supported_files, cnt_images_analyzed = cnt_images_in_folder(folder)
             if values['fps_output']:
                 extra_str = f" (about {round(cnt_images_analyzed / int(values['fps_output']))} seconds)"
             else:
                 extra_str = ''
+            print(f"{datetime.now().strftime('%H:%M:%S')} Folder {folder} selected, with {cnt_supported_files} supported image files ({cnt_files-cnt_supported_files} files ignored). {cnt_images_analyzed} used for movie{extra_str}.")
+
+        if event == 'skip_frame' and values["-FOLDER-"]:
+            if values['skip_frame']:
+                folder = values["-FOLDER-"]
+                cnt_files, cnt_supported_files, cnt_images_analyzed = cnt_images_in_folder(folder)
+                if values['fps_output']:
+                    extra_str = f" (about {round(cnt_images_analyzed / int(values['fps_output']))} seconds)"
+                else:
+                    extra_str = ''
+                print(f"{datetime.now().strftime('%H:%M:%S')} {cnt_supported_files} images in total, movie will consist of {cnt_images_analyzed} images{extra_str}.")
+
+        if event == 'fps_output' and values["-FOLDER-"]:
+            folder = values["-FOLDER-"]
+            cnt_files, cnt_supported_files, cnt_images_analyzed = cnt_images_in_folder(folder)
+            extra_str = f" (final video about {round(cnt_images_analyzed / int(values['fps_output']))} seconds)"
             print(f"{datetime.now().strftime('%H:%M:%S')} {cnt_supported_files} images in total, movie will consist of {cnt_images_analyzed} images{extra_str}.")
 
-    if event == 'fps_output' and values["-FOLDER-"]:
-        folder = values["-FOLDER-"]
-        cnt_files, cnt_supported_files, cnt_images_analyzed = cnt_images_in_folder(folder)
-        extra_str = f" (final video about {round(cnt_images_analyzed / int(values['fps_output']))} seconds)"
-        print(f"{datetime.now().strftime('%H:%M:%S')} {cnt_supported_files} images in total, movie will consist of {cnt_images_analyzed} images{extra_str}.")
 
+        if event == "Create timelapse":
+            folder = values["-FOLDER-"]
 
-    if event == "Create timelapse":
-        folder = values["-FOLDER-"]
+            if folder:
+                print(f"{datetime.now().strftime('%H:%M:%S')} Creating timelapse now ...")
 
-        if folder:
-            print(f"{datetime.now().strftime('%H:%M:%S')} Creating timelapse now ...")
+                # if values['rawvideo'] == True:
+                #     CreateOCAVideo(folder, int(values["fps_output"]), int(values["newHeight"]))
+                # else:
+                #     overlay = values['overlay']
+                #     AssembleTimelapse(folder, values['inputframerate'], int(values["fps_input"]), int(values["fps_output"]), int(values["compression_rate"]), window, overlay=overlay, overlayformat=values['overlayformat'])
+                overlay = values['overlay']
+                skip_frame = int(values['skip_frame'])
+                fps_input = int(values["fps_input"]) if values["fps_input"] else 0
 
-            # if values['rawvideo'] == True:
-            #     CreateOCAVideo(folder, int(values["fps_output"]), int(values["newHeight"]))
-            # else:
-            #     overlay = values['overlay']
-            #     AssembleTimelapse(folder, values['inputframerate'], int(values["fps_input"]), int(values["fps_output"]), int(values["compression_rate"]), window, overlay=overlay, overlayformat=values['overlayformat'])
-            overlay = values['overlay']
-            skip_frame = int(values['skip_frame'])
-            fps_input = int(values["fps_input"]) if values["fps_input"] else 0
+                try:
+                    if values["frames_input"]:
+                        framestart, frameend = values["frames_input"].split(',')
+                        if int(framestart) < 0 or int(frameend) > cnt_supported_files:
+                            raise Exception( f"{datetime.now().strftime('%H:%M:%S')} ERROR     Selection reaches outside possible range (0< or >{cnt_supported_files}: nr of supported files)")
+                        frames_input = [int(framestart), int(frameend)]
+                    else:
+                        frames_input = 0
+                except:
+                    raise Exception(f"{datetime.now().strftime('%H:%M:%S')} ERROR     Give a selection of desired frames: input split by a comma 'start, end' ")
+                try:
+                    AssembleTimelapse(folder, values['inputframerate'], fps_input, values['inputframes'], frames_input,
+                                  int(values["fps_output"]), int(values["compression_rate"]), values["output_format"], window, overlay=overlay, overlayformat=values['overlayformat'], skipframe=skip_frame, skip_validation=values['skip_validation'])
+                except:
+                    print('Something went wrong in the AssembleTimelapse(...) - Traceback below:')
+                    print(traceback.format_exc())
+            else:
+                print(f"{datetime.now().strftime('%H:%M:%S')} ERROR     No folder selected.")
 
-            try:
-                if values["frames_input"]:
-                    framestart, frameend = values["frames_input"].split(',')
-                    if int(framestart) < 0 or int(frameend) > cnt_supported_files:
-                        raise Exception( f"{datetime.now().strftime('%H:%M:%S')} ERROR     Selection reaches outside possible range (0< or >{cnt_supported_files}: nr of supported files)")
-                    frames_input = [int(framestart), int(frameend)]
-                else:
-                    frames_input = 0
-            except:
-                raise Exception(f"{datetime.now().strftime('%H:%M:%S')} ERROR     Give a selection of desired frames: input split by a comma 'start, end' ")
+        if event == 'Set settings as default':
+            SaveAsDefault()
 
-            AssembleTimelapse(folder, values['inputframerate'], fps_input, values['inputframes'], frames_input,
-                              int(values["fps_output"]), int(values["compression_rate"]), values["output_format"], window, overlay=overlay, overlayformat=values['overlayformat'], skipframe=skip_frame, skip_validation=values['skip_validation'])
+        if event == 'inputframerate':
+            if values['inputframerate'] == 'Fixed':
+                window['fps_input'].update(disabled=False, text_color='black')
+            else:
+                window['fps_input'].update(disabled=True, text_color='grey')
 
-        else:
-            print(f"{datetime.now().strftime('%H:%M:%S')} ERROR     No folder selected.")
+        if event == 'inputframes':
+            if values['inputframes'] == 'All':
+                window['frames_input'].update(disabled=True, text_color='grey')
+            else:
+                window['frames_input'].update(disabled=False, text_color='black')
 
-    if event == 'Set settings as default':
-        SaveAsDefault()
+        if event == 'overlay':
+            if values['overlay']:
+                window['overlayformat'].update(disabled=False)
+            else:
+                window['overlayformat'].update(disabled=True)
 
-    if event == 'inputframerate':
-        if values['inputframerate'] == 'Fixed':
-            window['fps_input'].update(disabled=False, text_color='black')
-        else:
-            window['fps_input'].update(disabled=True, text_color='grey')
+        print(f'Finalized a loop: {event}')
 
-    if event == 'inputframes':
-        if values['inputframes'] == 'All':
-            window['frames_input'].update(disabled=True, text_color='grey')
-        else:
-            window['frames_input'].update(disabled=False, text_color='black')
-
-    if event == 'overlay':
-        if values['overlay']:
-            window['overlayformat'].update(disabled=False)
-        else:
-            window['overlayformat'].update(disabled=True)
+    except:
+        print('Something went wrong - Traceback below:')
+        print(traceback.format_exc())
 
