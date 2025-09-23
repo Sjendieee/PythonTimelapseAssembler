@@ -226,6 +226,12 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, frameselec
     except Exception as e:
         traceback.print_exc()
     finally:
+        # hold the last frame for 1 second
+        hold_time = 1.0  # seconds
+        extra_frames = int(output_framerate * hold_time)
+        for _ in range(extra_frames):
+            video.write(img)
+
         cv2.destroyAllWindows()
         video.release()
 

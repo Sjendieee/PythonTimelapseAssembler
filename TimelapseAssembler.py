@@ -299,7 +299,7 @@ while True:
             else:
                 window['overlayformat'].update(disabled=True)
 
-        print(f'Finalized a loop: {event}')
+        #print(f'Finalized a loop: {event}')
 
     except:
         print('Something went wrong - Traceback below:')
