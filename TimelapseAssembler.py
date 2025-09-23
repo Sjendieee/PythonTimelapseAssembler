@@ -213,7 +213,6 @@ SetInitialValues()
 while True:
     try:
         event, values = window.read()
-        print(event)
         if event == "Exit" or event == sg.WIN_CLOSED:
             break
 
