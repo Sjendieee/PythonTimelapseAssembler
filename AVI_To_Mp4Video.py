@@ -26,7 +26,7 @@ def convert_avi_to_mp4_v2(avi_file_path):
     input = avi_file_path
     output = os.path.join(f"{output_name}.mp4")
     print(f"Making mp4 file in: {output}")
-    #Working version, difficult because of externally downloaded ffmpeg.exe executable:
+    #Working version, difficult because of externally downloaded ffmpeg.exe executable (needs full version to work?):
     #os.popen(os.path.join(f".\\venv\\ffmpeg\\ffmpeg.exe  -i {input} -ac 2 -b:v 2000k -c:a aac -c:v libx264 -b:a 160k -vprofile high -bf 0 -strict experimental -f mp4 {output}.mp4"))
     (
         ffmpeg
