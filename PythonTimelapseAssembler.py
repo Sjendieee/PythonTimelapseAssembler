@@ -7,8 +7,21 @@ import textwrap
 import numpy as np
 from natsort import natsorted
 import traceback
-
+import threading
 # executable created via Terminal in Pycharm: pyinstaller -F PythonTimelapseAssembler.py
+
+
+# Save original hook
+orig_hook = threading.excepthook
+
+def ignore_none_thread_err(args):
+    if isinstance(args.exc_value, TypeError) and "NoneType" in str(args.exc_value):
+        print("⚠️ Ignoring FreeSimpleGUI background thread error")
+    else:
+        orig_hook(args)
+
+threading.excepthook = ignore_none_thread_err
+
 
 def TimeRemaining(arraytimes, left):
     avgtime = statistics.mean(arraytimes)
@@ -149,7 +162,14 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, frameselec
         outputWidth = round(inputWidth * (output_compression / 100))
 
         # TODO variable fps!
-        video = cv2.VideoWriter(outputfile, 0, output_framerate, (outputWidth, outputHeight))
+        if output_format == 'avi':
+            fourcc = cv2.VideoWriter_fourcc(*"XVID")  # Xvid/AVI
+        elif output_format == 'mp4':
+            fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # MPEG-4
+        else:
+            raise ValueError(f"Unsupported extension '{output_format}'. Use .mp4 or .avi")
+
+        video = cv2.VideoWriter(outputfile, fourcc, output_framerate, (outputWidth, outputHeight))
 
 
         fontSizeRatio = 6 / 3000
