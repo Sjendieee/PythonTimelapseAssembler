@@ -15,7 +15,7 @@ def resource_path(relative_path):
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_path, relative_path)
 
-icon_path = resource_path("timelapse.ico")
+icon_path = resource_path("TimelapseIcon_new.ico")
 
 # In prompt:
 # PyInstaller -F --onefile --noconsole -n TimelapseAssembler-1_8 --icon=timelapse.ico --add-data timelapse.ico;ico .\TimelapseAssembler.py
@@ -140,7 +140,7 @@ def SaveAsDefault():
 def SetInitialValues():
     print('----- Simple Timelapse Assembler -----')
     print('by Harmen Hoek & Sander Reuvekamp')
-    print(f"Version: {version} (https://github.com/harmenhoek/PythonTimelapseAssembler)")
+    print(f"Version: {version} (https://github.com/Sjendieee/PythonTimelapseAssembler)")
 
     try:
         with open('TimelapseAssemblerSettings.json') as f:
