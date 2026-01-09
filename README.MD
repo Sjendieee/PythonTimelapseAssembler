@@ -11,9 +11,11 @@ Video can be manually overlayed with temperature information
 
 Default settings for the program are saved with `Set settings as default` to a json file.
 
+Typical video making settings below:
+<img src="screenshots\Timelapsassembler-1.11.png" align="center" width="80%" />
+
 ## Executable Windows Defender Issues
 If Windows tries to Defend you from using this programn, check the following:
 - make sure you are administrator of the device
 - right-click the executable, and go to 'properties'. There, in the 'General' tab, tick the 'Unblock' box at the bottom. The programn should run without issues now.
 
-<img src="screenshots\img.png" align="center" width="80%" />
