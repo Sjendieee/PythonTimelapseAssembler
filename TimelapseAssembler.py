@@ -12,7 +12,7 @@ import sys
 import numpy as np
 import traceback
 
-version = '1.10 (23-09-2025)'
+version = '1.11 (09-01-2026)'
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -90,8 +90,15 @@ settings_row = [
     # ],
     [
         sg.Text('Overlay video with information'),
-        sg.Combo(['All', 'time only', 'none'], enable_events=True, key='overlay',  default_value='All')
+        sg.Combo(['Time+meta', 'Time', 'None'], enable_events=True, key='overlay',  default_value='Time+meta')
     ],
+
+    [
+        sg.Text('Add temperature overlay'),
+        sg.Button('Add temperature overlay'),
+    ],
+
+
 
     [
         sg.Checkbox('Skip image validation', key='skip_validation', enable_events=True, default=False)
@@ -149,6 +156,7 @@ def SaveAsDefault():
         'inputframerate': window["inputframerate"].get(),
         'inputframes': window["inputframes"].get(),
         'skip_frame': window["skip_frame"].get(),
+        'overlayformat' : window["overlayformat"].get(),
     }
     with open('TimelapseAssemblerSettings.json', 'w') as f:
         json.dump(data, f, indent=2)
@@ -173,6 +181,7 @@ def SetInitialValues():
             window["inputframerate"].update(settings['inputframerate'])
             window["inputframes"].update(settings['inputframes'])
             window["skip_frame"].update(settings['skip_frame'])
+            window["overlayformat"].update(settings['overlayformat'])
 
             # set initial disabled buttons
             if settings['fps_input'] != 'Fixed':
@@ -205,8 +214,98 @@ def cnt_images_in_folder(folder):
     cnt_images_analyzed = round(cnt_supported_files / int(values['skip_frame']))
     return cnt_files, cnt_supported_files, cnt_images_analyzed
 
+
+def temperature_overlay_window(existing=None):
+    if existing is None:
+        existing = []
+
+    entries = existing.copy()
+
+    layout = [
+        [sg.Text("Frame start"), sg.Input(key="-START-", size=(6,1)),
+         sg.Text("Frame end"), sg.Input(key="-END-", size=(6,1)),
+         sg.Text("Temperature (°C)"), sg.Input(key="-TEMP-", size=(8,1)),
+         sg.Button("Add", bind_return_key=True)],
+
+        [sg.Listbox(
+            values=[],
+            size=(50, 6),
+            key="-LIST-"
+        )],
+
+        [sg.Button("Remove selected"), sg.Push(), sg.Button("OK"), sg.Button("Cancel")]
+    ]
+
+    window = sg.Window("Temperature Overlay", layout, modal=True, finalize=True)
+
+    # set initial frame to 0 for temperature overlay
+    if entries:
+        window["-START-"].update(entries[-1]["end"] + 1)
+    else:
+        window["-START-"].update(0)
+
+    def update_listbox():
+        display = [
+            f"Frames {e['start']}–{e['end']} → {e['temp']} °C"
+            for e in entries
+        ]
+        window["-LIST-"].update(display)
+
+    update_listbox()
+
+    while True:
+        event, values = window.read()
+        if event in (sg.WINDOW_CLOSED, "Cancel"):
+            window.close()
+            return None
+
+        if event == "Add":
+            try:
+                start = int(values["-START-"])
+                end = int(values["-END-"])
+                temp = float(values["-TEMP-"])
+
+                if end < start:
+                    raise ValueError("End frame < start frame")
+
+                entries.append({
+                    "start": start,
+                    "end": end,
+                    "temp": temp
+                })
+
+                update_listbox()
+
+                window["-START-"].update(end + 1)
+                window["-END-"].update("")
+                window["-TEMP-"].update("")
+
+            except ValueError:
+                sg.popup_error("Please enter valid numbers.")
+
+        if event == "OK":
+            window.close()
+            return entries
+
+        if event == "Remove selected":
+            selection = values["-LIST-"]
+            if not selection:
+                sg.popup_error("Select an entry to remove.")
+                continue
+
+            # Get index of selected item
+            display_strings = [
+                f"Frames {e['start']}–{e['end']} → {e['temp']} °C"
+                for e in entries
+            ]
+            idx = display_strings.index(selection[0])
+
+            entries.pop(idx)
+            update_listbox()
+
 window = sg.Window("Simple Timelapse Assembler", layout, finalize=True, icon=icon_path)
 SetInitialValues()
+temperature_data = []
 
 while True:
     try:
@@ -268,7 +367,9 @@ while True:
                     raise Exception(f"{datetime.now().strftime('%H:%M:%S')} ERROR     Give a selection of desired frames: input split by a comma 'start, end' ")
                 try:
                     AssembleTimelapse(folder, values['inputframerate'], fps_input, values['inputframes'], frames_input,
-                                  int(values["fps_output"]), int(values["compression_rate"]), values["output_format"], window, overlay=overlay, overlayformat=values['overlayformat'], skipframe=skip_frame, skip_validation=values['skip_validation'])
+                                  int(values["fps_output"]), int(values["compression_rate"]), values["output_format"],
+                                      window, overlay=overlay, overlayformat=values['overlayformat'], skipframe=skip_frame,
+                                      skip_validation=values['skip_validation'], temperature_data=temperature_data)
                 except:
                     print('Something went wrong in the AssembleTimelapse(...) - Traceback below:')
                     print(traceback.format_exc())
@@ -296,7 +397,10 @@ while True:
             else:
                 window['overlayformat'].update(disabled=True)
 
-        #print(f'Finalized a loop: {event}')
+        if event == "Add temperature overlay":
+            resultT = temperature_overlay_window(temperature_data)
+            if resultT is not None:
+                temperature_data = resultT
 
     except:
         print('Something went wrong - Traceback below:')

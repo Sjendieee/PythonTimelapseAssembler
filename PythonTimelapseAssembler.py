@@ -112,7 +112,15 @@ def validate_images(analyze_images, images, folder_path, inputHeight, inputWidth
         if frame is None or (inputHeight, inputWidth, referenceLayers) != frame.shape:
             raise Exception(f"{datetime.now().strftime('%H:%M:%S')} Not possible to create timelapse. All images need to be of same shape. Image '{image}' has a different shape than the first image '{images[0]}'.")
 
-def AssembleTimelapse(folder_path, framerate_method, input_framerate, frameselection, inputframes, output_framerate, output_compression, output_format, window, overlay=True, overlayformat='auto', skipframe=1, skip_validation=True):
+def get_temperature_for_frame(frame_idx, temp_map):
+    for entry in temp_map:
+        if entry["start"] <= frame_idx <= entry["end"]:
+            return entry["temp"]
+    return None
+
+def AssembleTimelapse(folder_path, framerate_method, input_framerate, frameselection, inputframes, output_framerate,
+                      output_compression, output_format, window, overlay=True, overlayformat='auto', skipframe=1,
+                      skip_validation=True, temperature_data=None):
     try:
         if int(output_framerate) > 100 or int(output_framerate) < 1:
             raise Exception(f"{datetime.now().strftime('%H:%M:%S')} ERROR     Choose an output frame rate between 1 and 100.")
@@ -157,6 +165,8 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, frameselec
             print(f"{datetime.now().strftime('%H:%M:%S')} Validation of input images is skipped.")
             window.Refresh()
 
+        if temperature_data is not None:
+            print(f"{datetime.now().strftime('%H:%M:%S')} Temperatures overlay given: overlaying video with selected frames & temperature.")
 
         outputHeight = round(inputHeight * (output_compression / 100))
         outputWidth = round(inputWidth * (output_compression / 100))
@@ -192,13 +202,20 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, frameselec
 
             # Print strings on the image
             # cv2.putText(image, string, location, font, fontscale, fontcolor, fontthickness, linetype)
-            if overlay != 'none':
+            if overlay != 'None':
                 # StringTime = f"t={FancyTimeFormat(idx / input_framerate, len(images) / input_framerate, mode='auto')}"
 
+                #Below: Effectively time-only
                 StringTime = f"t={FancyTimeFormat(timeFromStart[idx], timeFromStart[-1], mode=overlayformat)}"
                 cv2.putText(img, StringTime, (xSize, ySize), font, fontScale, fontColor, thickness, lineType)
 
-                if overlay == 'All':
+                temp = get_temperature_for_frame(idx, temperature_data)
+                if temp is not None:
+                    overlay_text = f"T={temp:.1f} C"
+                    cv2.putText(img, overlay_text, (xSize, ySize * 3), font, fontScale, fontColor, thickness, lineType)
+
+                # (All) extra info on e.g. path, date video created, frame nr.
+                if overlay == 'Time+meta':
                     StringPathFolder = textwrap.wrap(f"Original path: {folder_path}", width=100)
                     offset = round(fontScale * 10)
                     for i, line in enumerate(StringPathFolder):
