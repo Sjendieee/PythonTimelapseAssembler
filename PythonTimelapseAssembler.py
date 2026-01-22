@@ -48,15 +48,15 @@ def FancyTimeFormat(t, max_t, mode='variable'):
             out = f"{round(t / 60)}min"
         else:
             out = f"{round(t / 3600)}hrs"
-    elif mode == 'auto':
+    elif mode == 'full':
         if max_t < 5:
             out = f"{round(t * 1000)}ms"
         elif max_t < 90:
             out = f"{round(t)}s"
         elif max_t < 3600:
-            out = f"{round(t / 60)}min"
+            out = f"{round(t / 60)}min, {t % 60}sec"
         else:
-            out = f"{round(t / 3600)}hrs"
+            out = f"{round(t / 3600)}hrs, {round((t / 60)  % 60)}min"
     elif mode == 'ms':
         out = f"{round(t * 1000)}ms"
     elif mode == 'sec':
@@ -66,7 +66,7 @@ def FancyTimeFormat(t, max_t, mode='variable'):
     elif mode == 'hrs':
         out = f"{round(t / 3600)}hrs"
     else:
-        ValueError(f"{datetime.now().strftime('%H:%M:%S')} {mode} is not a valid option. try variable, auto, sec, min or hrs.")
+        ValueError(f"{datetime.now().strftime('%H:%M:%S')} {mode} is not a valid option. try variable, full, sec, min or hrs.")
     return out
 
 def timestamps_to_deltat(timestamps):
@@ -119,7 +119,7 @@ def get_temperature_for_frame(frame_idx, temp_map):
     return None
 
 def AssembleTimelapse(folder_path, framerate_method, input_framerate, frameselection, inputframes, output_framerate,
-                      output_compression, output_format, window, overlay=True, overlayformat='auto', skipframe=1,
+                      output_compression, output_format, window, overlay=True, overlayformat='full', skipframe=1,
                       skip_validation=True, temperature_data=None):
     try:
         if int(output_framerate) > 100 or int(output_framerate) < 1:
