@@ -56,7 +56,7 @@ def FancyTimeFormat(t, max_t, mode='variable'):
         elif max_t < 3600:
             out = f"{round(t / 60)}min, {t % 60}sec"
         else:
-            out = f"{round(t / 3600)}hrs, {round((t / 60)  % 60)}min"
+            out = f"{round(t / 3600)}hrs, {round((t / 60)  % 60)}min, {t % 60}sec"
     elif mode == 'ms':
         out = f"{round(t * 1000)}ms"
     elif mode == 'sec':
