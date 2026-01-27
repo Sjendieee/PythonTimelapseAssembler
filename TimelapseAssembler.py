@@ -12,7 +12,7 @@ import sys
 import numpy as np
 import traceback
 
-version = '1.11 (09-01-2026)'
+version = '1.11_2 (22-01-2026)'
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -25,7 +25,7 @@ icon_path = resource_path("TimelapseIcon_new.ico")
 # PyInstaller -F --onefile --noconsole -n TimelapseAssembler-1_8 --icon=timelapse.ico --add-data timelapse.ico;ico .\TimelapseAssembler.py
 
 #To make .exe executable:                                     _version
-# pyinstaller -F --noconsole -n TimelapseAssembler-1_10 --icon=TimelapseIcon_new.ico --add-data TimelapseIcon_new.ico:ico .\TimelapseAssembler.py
+# pyinstaller -F --noconsole -n TimelapseAssembler-1_11_2 --icon=TimelapseIcon_new.ico --add-data TimelapseIcon_new.ico:ico .\TimelapseAssembler.py
 
 settings_row = [
     [

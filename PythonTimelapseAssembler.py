@@ -56,7 +56,7 @@ def FancyTimeFormat(t, max_t, mode='variable'):
         elif max_t < 3600:
             out = f"{round(t / 60)}min, {t % 60}sec"
         else:
-            out = f"{round(t / 3600)}hrs, {round((t / 60)  % 60)}min, {t % 60}sec"
+            out = f"{round(t / 3600)}hrs, {round((t / 60)  % 60)}min, {round(t % 60)}sec"
     elif mode == 'ms':
         out = f"{round(t * 1000)}ms"
     elif mode == 'sec':
@@ -138,13 +138,17 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, frameselec
         images = natsorted(images)
         # TODO implement frame selection properly, such that it is integrated with 'Only 1/N frames', and update in prompt the number of images analyzed+ estimated video length
         if frameselection == 'All':
+            nr_of_omittedimages = 0
             pass
         else:
             try:
                 framestart, frameend = inputframes
             except:
                 raise Exception(f"{datetime.now().strftime('%H:%M:%S')} ERROR     Give a selection of desired frames: input split by a comma 'start, end' ")
+            nr_of_omittedimages = len(images) - (frameend - framestart + 1)
             images = images[framestart:frameend]
+            #TODO fixed? here img range implementaion
+
         window.Refresh()
 
         referenceFrame = cv2.imread(os.path.join(folder_path, images[0]))
@@ -209,7 +213,7 @@ def AssembleTimelapse(folder_path, framerate_method, input_framerate, frameselec
                 StringTime = f"t={FancyTimeFormat(timeFromStart[idx], timeFromStart[-1], mode=overlayformat)}"
                 cv2.putText(img, StringTime, (xSize, ySize), font, fontScale, fontColor, thickness, lineType)
 
-                temp = get_temperature_for_frame(idx, temperature_data)
+                temp = get_temperature_for_frame(idx + nr_of_omittedimages, temperature_data)
                 if temp is not None:
                     overlay_text = f"T={temp:.1f} C"
                     cv2.putText(img, overlay_text, (xSize, ySize * 3), font, fontScale, fontColor, thickness, lineType)
