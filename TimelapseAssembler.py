@@ -11,13 +11,20 @@ import cv2
 import sys
 import numpy as np
 import traceback
+from tkinter import Tk
 
-version = '1.11_2 (22-01-2026)'
+version = '1.11_3 (27-01-2026)'
+
+# def resource_path(relative_path):
+#     """ Get absolute path to resource, works for dev and for PyInstaller """
+#     base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+#     return os.path.join(base_path, relative_path)
+#icon_path = resource_path("TimelapseIcon_new.ico")
 
 def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base_path, relative_path)
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 icon_path = resource_path("TimelapseIcon_new.ico")
 
@@ -25,7 +32,7 @@ icon_path = resource_path("TimelapseIcon_new.ico")
 # PyInstaller -F --onefile --noconsole -n TimelapseAssembler-1_8 --icon=timelapse.ico --add-data timelapse.ico;ico .\TimelapseAssembler.py
 
 #To make .exe executable:                                     _version
-# pyinstaller -F --noconsole -n TimelapseAssembler-1_11_2 --icon=TimelapseIcon_new.ico --add-data TimelapseIcon_new.ico:ico .\TimelapseAssembler.py
+# pyinstaller -F --noconsole -n TimelapseAssembler-1_11_3 --icon=TimelapseIcon_new.ico --add-data TimelapseIcon_new.ico:ico .\TimelapseAssembler.py
 
 settings_row = [
     [
