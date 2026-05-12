@@ -38,7 +38,7 @@ def TimeRemaining(arraytimes, left):
     return True
 
 
-def FancyTimeFormat(t, max_t, mode='variable'):
+def FancyTimeFormat(t, max_t, mode='full'):
     if mode == 'variable':
         if max_t < 5:
             out = f"{round(t * 1000)}ms"
@@ -54,7 +54,7 @@ def FancyTimeFormat(t, max_t, mode='variable'):
         elif max_t < 90:
             out = f"{round(t)}s"
         elif max_t < 3600:
-            out = f"{round(t / 60)}min, {t % 60}sec"
+            out = f"{round(t / 60)}min, {round(t % 60)}sec"
         else:
             out = f"{round(t / 3600)}hrs, {round((t / 60)  % 60)}min, {round(t % 60)}sec"
     elif mode == 'ms':

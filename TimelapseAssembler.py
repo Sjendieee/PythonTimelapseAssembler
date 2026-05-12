@@ -112,7 +112,7 @@ settings_row = [
     ],
     [
         sg.Text("Time format of overlay"),
-        sg.Combo(['full', 'variable', 'ms', 'sec', 'min', 'hrs'], enable_events=True, key='overlayformat', default_value='variable'),
+        sg.Combo(['full', 'variable', 'ms', 'sec', 'min', 'hrs'], enable_events=True, key='overlayformat', default_value='full'),
     ],
     [
         sg.Text('Use every Nth frame'),
