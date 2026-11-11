@@ -1,0 +1,13 @@
+{
+  "fps_output": "20",
+  "fps_input": "",
+  "frames_input": "",
+  "compression_rate": "15",
+  "output_format": "mp4",
+  "overlay": "Time+meta",
+  "skip_validation": false,
+  "inputframerate": "Read from creation date (Windows only)",
+  "inputframes": "All",
+  "skip_frame": "1",
+  "overlayformat": "variable"
+}
