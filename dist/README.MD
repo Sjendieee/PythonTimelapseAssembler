@@ -28,7 +28,7 @@ The application is written in Python and can be run as a standalone Windows exec
 2. Run the executable; no separate Python installation is needed for a correctly packaged build.
 3. Under **Image Folder**, select the folder containing the image sequence.
 4. Choose how the experiment time should be determined under **Input framerate** (see [Input timing](#input-timing)).
-5. Set the **Output frame rate** (for example, `30`), **Compression rate** (for example, `100`), and **Output format** (`mp4` recommended for general playback).
+5. Set the **Output frame rate** (for example, `15`), **Compression rate** (for example, `20`), and **Output format** (`mp4` recommended for general playback).
 6. Select the desired overlay mode and, optionally, add temperature annotations or select/skip frames.
 7. Click **Create timelapse**. Processing status appears in the **Output** panel.
 
